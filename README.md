@@ -1,3 +1,3 @@
-### SRL-vanilla
+### SRL-neon
 
-Scripts made with SRL and WaspLib for the vanilla OSRS client.
+Scripts made with SRL and WaspLib to be used alongside RuneLite and its plugins.
