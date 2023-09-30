@@ -1,0 +1,222 @@
+program enchantroom;
+{$DEFINE SRL_USE_REMOTEINPUT}
+{$I WaspLib/osr.simba}
+{$DEFINE FORMS_V2}
+
+begin
+  Login.PlayerIndex := 0;
+end;
+
+const
+  BREAKAFTER  = 44;
+  BREAKFOR    = 12;
+
+var
+  RSW          : TRSWalker;
+  State        : String;
+  Timer        : TStopwatch;
+  StartXP      : Int32;
+  CurrentXP    : Int32;
+  GainedXP     : Int32       := 0;
+  JoinTile     : TPoint      := [268, 106];
+  CornerTile   : TPoint      := [96, 608];
+  STATUEAREA   : TPointArray := [[258, 86], [280, 86], [291, 96], [290, 116], [278, 129], [279, 141], [261, 141], [261, 129], [250, 118], [250, 96]];
+  MTALOBBY     : TPointArray := [[241, 159], [241, 145], [251, 145], [260, 141], [268, 141], [275, 141], [283, 143], [297, 145], [298, 171], [282, 171], [282, 184], [256, 185], [256, 170], [241, 169]];
+  ECROOM       : TPointArray := [[23, 532], [263, 528], [262, 771], [9, 762]];
+  ORB          : TRSItem     := 'Orb';
+  CUBE         : TRSItem     := 'Cube';
+
+
+procedure PauseTimer(Task: PBreakTask);
+var T: PBreakTask;
+begin
+  Timer.Pause;
+  T := Task;
+end;
+
+procedure ResumeTimer(Task: PBreakTask);
+var T: PBreakTask;
+begin
+  Timer.Resume;
+  T := Task;
+end;
+
+procedure PrintProgress();
+begin
+  ClearDebug();
+  WriteLn('| ~ enchanting-chamberz-v0.01 ~ |');
+  WriteLn('| ------------------------------|');
+  WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
+  WriteLn('| Magic exp      : ', GainedXP);
+  WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
+  WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
+  WriteLn('| ------------------------------|');
+end;
+
+procedure SetupAntiBan();
+begin
+  Antiban.Skills := [ERSSKILL.MAGIC];
+  Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.RandomRightClick);
+  Antiban.AddTask(ONE_SECOND  * 45,  @Mouse.RandomMovement);
+  Antiban.AddTask(ONE_MINUTE  * 5,   @Antiban.RandomRotate);
+  Antiban.AddTask(ONE_MINUTE  * 15,  @Antiban.HoverSkills);
+  Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.LoseFocus);
+  Antiban.AddBreak(ONE_MINUTE * 5, ONE_SECOND*10, 0.2, 0);
+  Antiban.AddBreak(BREAKAFTER * ONE_MINUTE, BREAKFOR * ONE_MINUTE);
+  Antiban.OnStartBreak := @PauseTimer;
+  Antiban.OnFinishBreak := @ResumeTimer;
+end;
+
+procedure InitiateScript();
+begin
+  RSW.Setup('mta');
+  SRL.Setup();
+  SetupAntiBan();
+  if not RSClient.IsLoggedIn then Login.LoginPlayer;
+  WaitUntil(RSClient.IsLoggedIn, 100, 10000);
+  StartXP := XPBar.Read;
+  Timer.Start();
+end;
+
+procedure CalculateXP();
+var t: Int32;
+begin
+  CurrentXP := XPBar.Read();
+  t         := GainedXP;
+  GainedXP  := CurrentXP - StartXP;
+  if GainedXP > t then Timer.Reset();
+  if Timer.ElapsedTime > 300000 then TerminateScript('No Gained XP in 5 minutes!');
+end;
+
+function GetState(): string;
+var Pos: TPoint;
+begin
+  CalculateXP();
+  Pos := RSW.GetMyPos();
+  if ECROOM.Bounds.Contains(Pos) then Exit('INROOM');
+  if STATUEAREA.Bounds.Contains(Pos) then Exit('STATUEAREA');
+  if MTALOBBY.Bounds.Contains(Pos) then Exit('MTALOBBY');
+  Exit('UNKNOWN');
+end;
+
+procedure EnterRoom();
+var TPA: TPointArray;
+begin
+  SRL.FindColors(TPA, CTS0(9228799, 0), Mainscreen.Bounds());
+  if (TPA.Len > 0) then
+    begin
+      Mouse.HumanMove(TPA.Mean());
+      Wait(20, 120);
+      if (not Mainscreen.IsUpText('Enter Ench')) then Antiban.RandomRotate()
+      else
+        begin
+          Mouse.Click(MOUSE_LEFT);
+          Wait(3000, 5000);
+          Exit;
+        end;
+    end;
+  Antiban.RandomRotate();
+end;
+
+procedure ExitRoom();
+var TPA: TPointArray;
+begin
+  SRL.FindColors(TPA, CTS0(65530, 0), Mainscreen.Bounds());
+  if (not TPA.Len > 0) then Antiban.RandomRotate()
+  else
+    begin
+      Mouse.HumanMove(TPA.Mean());
+      Wait(25, 75);
+      if (Mainscreen.IsUpText('Exit')) then Mouse.Click(MOUSE_LEFT)
+      else Antiban.RandomRotate();
+    end;
+  Wait(125, 250);
+end;
+
+function AtTile(Tile: TPoint): Boolean;
+begin
+  Result := RSW.GetMyPos.DistanceTo(Tile) <= 45;
+end;
+
+procedure ClickCubePile();
+var TPA: TPointArray;
+begin
+  if Mainscreen.IsUpText('Cast') then Mouse.Click(MOUSE_LEFT);
+  if MainScreen.IsUpText('Take-from') then
+    begin
+      Wait(25, 75);
+      Mouse.Click(MOUSE_LEFT);
+    end
+  else
+    begin
+      SRL.FindColors(TPA, CTS0(16133, 0), Mainscreen.Bounds());
+      if (TPA.Len > 0) then
+        begin
+          Mouse.HumanMove(TPA.Mean());
+          Wait(25, 75);
+          if MainScreen.IsUpText('Take-from') then Mouse.Click(MOUSE_LEFT)
+          else Antiban.RandomRotate();
+        end
+      else Antiban.RandomRotate();
+    end;
+end;
+
+procedure WalkToStatues();
+begin
+  RSW.WalkBlind(JoinTile);
+  Antiban.DoAntiban();
+end;
+
+procedure DepositOrbs();
+var TPA: TPointArray;
+begin
+  SRL.FindColors(TPA, CTS0(16745203, 0), Mainscreen.Bounds());
+  if (not TPA.Len > 0) then Antiban.RandomRotate()
+  else
+    begin
+      Mouse.HumanMove(TPA.Mean());
+      Wait(25, 75);
+      if (Mainscreen.IsUpText('Deposit')) then Mouse.Click(MOUSE_LEFT)
+      else Antiban.RandomRotate();
+    end;
+  Wait(1250, 2500);
+  PrintProgress;
+end;
+
+
+procedure EnchantCubes();
+begin
+  Magic.CastSpell(ERSSPell.LVL5_ENCHANT);
+  Wait(125, 250);
+  Inventory.MouseItem(CUBE);
+  Wait(125, 250);
+  Mouse.Click(MOUSE_LEFT);
+  Wait(150, 500);
+  WaitUntil(not Inventory.ContainsItem(CUBE), 250, 120000);
+end;
+
+procedure SolveRoom();
+begin
+  Antiban.DoAntiban();
+  if not AtTile(CornerTile) then RSW.WalkBlind(CornerTile);
+  if not Inventory.IsFull then ClickCubePile
+  else if Inventory.ContainsItem(CUBE) then EnchantCubes
+  else if Inventory.ContainsItem(ORB) then DepositOrbs;
+end;
+
+begin
+  InitiateScript();
+  repeat
+    begin
+      if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+      State := GetState();
+      case State of
+        'MTALOBBY'   : WalkToStatues();
+        'INROOM'     : SolveRoom();
+        'STATUEAREA' : EnterRoom();
+        'UNKNOWN'    : ExitRoom();
+      end;
+    Wait(150, 350);
+    end;
+  until false;
+end.
