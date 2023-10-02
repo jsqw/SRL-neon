@@ -16,5 +16,5 @@ Tested with SRL-T v2.6.7 and WaspLib v14.8.1.
 | Gained exp     : 1257
 | Failsafe timer : 05m 00s
 | Next break     : 00:01:51
-| -------------------------------
+| -------------------------------|
 ```
