@@ -15,18 +15,17 @@ Completes the Mage Training Arena minigame in OSRS.
 
 Please check the [osrs.wiki](https://oldschool.runescape.wiki/w/Mage_Training_Arena) page for requirements to specific room.
 
-The creature graveyard script banks with rings of dueling and returns to the minigame using Ring of the elements.
+The creature graveyard script banks with rings of dueling and returns to the minigame using Ring of the Elements.
 
 ## General instructions:
 
-1. Save the following [map](https://i.imgur.com/yRapvnM.png) into Simba/Includes/WaspLib/osr/walker/maps as mta.png
-2. Save the runelite.properties file anywhere you'd like and import it into runelite from the profiles tab. Remember to activate the profile by doubleclicking it.
-3. Download scripts into Simba/Scripts folder
-4. Select the RuneLite window with Simba's target selector
-5. The scripts work best with fixed mode enabled and client zoomed far out
-6. Make sure you have enough of the required runes in inventory
-7. Make sure you have your brightness set to 100 %
-8. Run script
+1. Download scripts into Simba/Scripts folder
+2. After running a Script for the first time, it will create MTA folder in your Simba folder and insert MTA.properties in it, please import and activate the file in your RuneLite settings
+3. Select the RuneLite window with Simba's target selector
+4. The scripts work best with fixed mode enabled and client zoomed far out
+5. Make sure you have enough of the required runes in inventory
+6. Make sure you have your brightness set to 100 %
+7. Run script
 
 ## Instructions for specific rooms:
 
@@ -46,16 +45,9 @@ The creature graveyard script banks with rings of dueling and returns to the min
 
 ### Enchanting Chamber:
 
-- Script does level 5 enchant by default, change it in the script if you don't have the magic level for it
 - Start at MTA or in the Enchanting room
 
 ### Telekinetic Theatre
 
 - Set your client in fixed mode
 - Start at MTA or in Telekinetic room
-
-## Thank you to the following people for helping with developing the scripts:
-
-- Torwent
-- Slacky
-- Flight

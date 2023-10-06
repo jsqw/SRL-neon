@@ -3,6 +3,8 @@ program enchantroom;
 {$I WaspLib/osr.simba}
 {$DEFINE FORMS_V2}
 
+  // HERE YOU CAN EDIT WHICH ACCOUNT YOU WANT TO USE.
+  // FIRST ACCOUNT IN credentials.simba MEANS Login.PlayerIndex := 0
 begin
   Login.PlayerIndex := 0;
 end;
@@ -11,20 +13,32 @@ const
   BREAKAFTER  = 44;
   BREAKFOR    = 12;
 
+  // HERE YOU CAN EDIT THE SPELL YOU WANT TO USE.
+  // EXAMPLE: SAPPHIRE ENCHANT IS ERSSPell.LVL1_ENCHANT
+  ENCHANTSPELL: ERSSPell := ERSSpell.LVL2_ENCHANT;
+
 var
-  RSW          : TRSWalker;
-  State        : String;
-  Timer        : TStopwatch;
-  StartXP      : Int32;
-  CurrentXP    : Int32;
-  GainedXP     : Int32       := 0;
-  JoinTile     : TPoint      := [268, 106];
-  CornerTile   : TPoint      := [96, 608];
-  STATUEAREA   : TPointArray := [[258, 86], [280, 86], [291, 96], [290, 116], [278, 129], [279, 141], [261, 141], [261, 129], [250, 118], [250, 96]];
-  MTALOBBY     : TPointArray := [[241, 159], [241, 145], [251, 145], [260, 141], [268, 141], [275, 141], [283, 143], [297, 145], [298, 171], [282, 171], [282, 184], [256, 185], [256, 170], [241, 169]];
-  ECROOM       : TPointArray := [[23, 532], [263, 528], [262, 771], [9, 762]];
-  ORB          : TRSItem     := 'Orb';
-  CUBE         : TRSItem     := 'Cube';
+  RSW: TRSWalker;
+  State: String;
+  Timer: TStopwatch;
+  StartXP: Int32;
+  CurrentXP: Int32;
+  GainedXP: Int32 := 0;
+  JoinTile: TPoint := [268, 106];
+  CornerTile: TPoint := [84, 584];
+  DepositTile: TPoint := [120, 620];
+  STATUEAREA: TPointArray := [[258, 86], [280, 86], [291, 96],
+                              [290, 116], [278, 129], [279, 141],
+                              [261, 141], [261, 129], [250, 118],
+                              [250, 96]];
+  MTALOBBY: TPointArray := [[241, 159], [241, 145], [251, 145],
+                            [260, 141], [268, 141], [275, 141],
+                            [283, 143], [297, 145], [298, 171],
+                            [282, 171], [282, 184], [256, 185],
+                            [256, 170], [241, 169]];
+  ECROOM: TPointArray := [[23, 532], [263, 528], [262, 771], [9, 762]];
+  ORB: TRSItem := 'Orb';
+  CUBE: TRSItem := 'Cube';
 
 
 procedure PauseTimer(Task: PBreakTask);
@@ -44,13 +58,14 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn('| ~ enchanting-chamberz-v0.01 ~ |');
-  WriteLn('| ------------------------------|');
+  WriteLn('| MTA by n0ll v1.1            |');
+  WriteLn('| The Enchanting Chamber      |');
+  WriteLn('| ----------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Magic exp      : ', GainedXP);
   WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
   WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
-  WriteLn('| ------------------------------|');
+  WriteLn('| ----------------------------|');
 end;
 
 procedure SetupAntiBan();
@@ -67,14 +82,36 @@ begin
   Antiban.OnFinishBreak := @ResumeTimer;
 end;
 
+procedure Downloader(const URL, Filename: string);
+var Client: Int32;
+begin
+  Client := InitializeHTTPClient(False);
+  try
+    GetHTTPPageEx(Client, URL, Filename);
+  finally
+    FreeHTTPClient(Client);
+  end;
+end;
+
 procedure InitiateScript();
 begin
+
+  if (not DirectoryExists(AppPath+'\MTA\')) then
+    CreateDirectory(AppPath+'\MTA');
+
+  if (not FileExists(AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png')) then
+    Downloader('https://i.imgur.com/yRapvnM.png', AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png');
+
+  if (not FileExists(AppPath+'\MTA\mta.properties')) then
+    Downloader('https://github.com/jsqw/SRL-neon/blob/main/mta/runelite.properties ',
+    AppPath+'\MTA\mta.properties');
+
   RSW.Setup('mta');
   SRL.Setup();
   SetupAntiBan();
-  if not RSClient.IsLoggedIn then Login.LoginPlayer;
-  WaitUntil(RSClient.IsLoggedIn, 100, 10000);
-  StartXP := XPBar.Read;
+  if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+  WaitUntil(RSClient.IsLoggedIn(), 100, 10000);
+  StartXP := XPBar.Read();
   Timer.Start();
 end;
 
@@ -112,7 +149,7 @@ begin
         begin
           Mouse.Click(MOUSE_LEFT);
           Wait(3000, 5000);
-          Exit;
+          Exit();
         end;
     end;
   Antiban.RandomRotate();
@@ -133,9 +170,9 @@ begin
   Wait(125, 250);
 end;
 
-function AtTile(Tile: TPoint): Boolean;
+function AtTile(Tile: TPoint; Distance: Int32): Boolean;
 begin
-  Result := RSW.GetMyPos.DistanceTo(Tile) <= 45;
+  Result := RSW.GetMyPos.DistanceTo(Tile) < Distance;
 end;
 
 procedure ClickCubePile();
@@ -146,6 +183,8 @@ begin
     begin
       Wait(25, 75);
       Mouse.Click(MOUSE_LEFT);
+      if ((Mainscreen.DidRedClick) and (not AtTile([84, 584], 15))) then
+      Minimap.WaitMoving();
     end
   else
     begin
@@ -171,7 +210,11 @@ procedure DepositOrbs();
 var TPA: TPointArray;
 begin
   SRL.FindColors(TPA, CTS0(16745203, 0), Mainscreen.Bounds());
-  if (not TPA.Len > 0) then Antiban.RandomRotate()
+  if (TPA.Len < 20) then
+    begin
+      if (not AtTile(DepositTile, 19)) then RSW.WalkBlind(DepositTile)
+      else Antiban.RandomRotate();
+    end
   else
     begin
       Mouse.HumanMove(TPA.Mean());
@@ -183,25 +226,24 @@ begin
   PrintProgress;
 end;
 
-
 procedure EnchantCubes();
 begin
-  Magic.CastSpell(ERSSPell.LVL5_ENCHANT);
+  Magic.CastSpell(ENCHANTSPELL);
   Wait(125, 250);
   Inventory.MouseItem(CUBE);
   Wait(125, 250);
   Mouse.Click(MOUSE_LEFT);
   Wait(150, 500);
-  WaitUntil(not Inventory.ContainsItem(CUBE), 250, 120000);
+  WaitUntil(not Inventory.ContainsItem(CUBE), 1250, 120000);
 end;
 
 procedure SolveRoom();
 begin
   Antiban.DoAntiban();
-  if not AtTile(CornerTile) then RSW.WalkBlind(CornerTile);
-  if not Inventory.IsFull then ClickCubePile
-  else if Inventory.ContainsItem(CUBE) then EnchantCubes
-  else if Inventory.ContainsItem(ORB) then DepositOrbs;
+  if not AtTile(CornerTile, 80) then RSW.WalkBlind(CornerTile);
+  if not Inventory.IsFull then ClickCubePile()
+  else if Inventory.ContainsItem(CUBE) then EnchantCubes()
+  else if Inventory.ContainsItem(ORB) then DepositOrbs();
 end;
 
 begin
