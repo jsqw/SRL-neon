@@ -3,6 +3,8 @@ program telekinesisroom;
 {$I WaspLib/osr.simba}
 {$DEFINE FORMS_V2}
 
+  // HERE YOU CAN EDIT WHICH ACCOUNT YOU WANT TO USE.
+  // FIRST ACCOUNT IN credentials.simba MEANS Login.PlayerIndex := 0
 begin
   Login.PlayerIndex := 0;
 end;
@@ -12,16 +14,23 @@ const
   BREAKFOR    = 12;
 
 var
-  RSW          : TRSWalker;
-  State        : String;
-  Timer        : TStopwatch;
-  StartXP      : Int32;
-  CurrentXP    : Int32;
-  GainedXP     : Int32       := 0;
-  JoinTile     : TPoint      := [268, 110];
-  STATUEAREA   : TPointArray := [[258, 86], [280, 86], [291, 96], [290, 116], [278, 129], [279, 141], [261, 141], [261, 129], [250, 118], [250, 96]];
-  MTALOBBY     : TPointArray := [[241, 159], [241, 145], [251, 145], [260, 141], [268, 141], [275, 141], [283, 143], [297, 145], [298, 171], [282, 171], [282, 184], [256, 185], [256, 170], [241, 169]];
-  InfoArea     : TBox        := [465, 231, 508, 248];
+  RSW: TRSWalker;
+  State: String;
+  Timer: TStopwatch;
+  StartXP: Int32;
+  CurrentXP: Int32;
+  GainedXP: Int32 := 0;
+  JoinTile: TPoint := [268, 110];
+  STATUEAREA: TPointArray := [[258, 86], [280, 86], [291, 96],
+                              [290, 116], [278, 129], [279, 141],
+                              [261, 141], [261, 129], [250, 118],
+                              [250, 96]];
+  MTALOBBY: TPointArray := [[241, 159], [241, 145], [251, 145],
+                            [260, 141], [268, 141], [275, 141],
+                            [283, 143], [297, 145], [298, 171],
+                            [282, 171], [282, 184], [256, 185],
+                            [256, 170], [241, 169]];
+  InfoArea: TBox := [465, 231, 508, 248];
 
 
 procedure PauseTimer(Task: PBreakTask);
@@ -41,13 +50,14 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn('| ~ telekinetic-theatre-v0.02 ~ |');
-  WriteLn('| ------------------------------|');
+  WriteLn('| MTA by n0ll v1.1            |');
+  WriteLn('| The Telekinetic Theatre     |');
+  WriteLn('| ----------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Magic exp      : ', GainedXP);
   WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
   WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
-  WriteLn('| ------------------------------|');
+  WriteLn('| ----------------------------|');
 end;
 
 procedure SetupAntiBan();
@@ -63,14 +73,36 @@ begin
   Antiban.OnFinishBreak := @ResumeTimer;
 end;
 
+procedure Downloader(const URL, Filename: string);
+var Client: Int32;
+begin
+  Client := InitializeHTTPClient(False);
+  try
+    GetHTTPPageEx(Client, URL, Filename);
+  finally
+    FreeHTTPClient(Client);
+  end;
+end;
+
 procedure InitiateScript();
 begin
+
+  if (not DirectoryExists(AppPath+'\MTA\')) then
+    CreateDirectory(AppPath+'\MTA');
+
+  if (not FileExists(AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png')) then
+    Downloader('https://i.imgur.com/yRapvnM.png', AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png');
+
+  if (not FileExists(AppPath+'\MTA\mta.properties')) then
+    Downloader('https://github.com/jsqw/SRL-neon/blob/main/mta/runelite.properties ',
+    AppPath+'\MTA\mta.properties');
+
   RSW.Setup('mta');
   SRL.Setup();
   SetupAntiBan();
-  if not RSClient.IsLoggedIn then Login.LoginPlayer;
-  WaitUntil(RSClient.IsLoggedIn, 100, 10000);
-  StartXP := XPBar.Read;
+  if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+  WaitUntil(RSClient.IsLoggedIn(), 100, 10000);
+  StartXP := XPBar.Read();
   Timer.Start();
 end;
 
@@ -84,19 +116,18 @@ begin
   if Timer.ElapsedTime > 300000 then TerminateScript('No Gained XP in 5 minutes!');
 end;
 
-function IsPlayerInGreenMarker(): boolean;
+function IsPlayerInGreenMarker(): Boolean;
 var
   TPA: TPointArray;
   Box: TBox;
 begin
   Box := Mainscreen.GetPlayerBox();
-  Box := Box.Expand(5);
   SRL.FindColors(TPA, CTS0(2408482, 63), Box);
   if (TPA.Len > 0) then Exit(True)
   else Exit(False);
 end;
 
-function GetState(): string;
+function GetState(): String;
 begin
   CalculateXP();
   if SRL.CountColor(CTS0(16764006, 0), InfoArea) > 50 then Exit('INROOM');
@@ -118,7 +149,7 @@ begin
         begin
           Mouse.Click(MOUSE_LEFT);
           Wait(3000, 5000);
-          Exit;
+          Exit();
         end;
     end;
   Antiban.RandomRotate();
@@ -156,7 +187,6 @@ begin
       Pt.Y += 4;
       if Box.Contains(Pt) then
         begin
-          WriteLn('Player is close to destination, walking via MS.');
           Mouse.HumanMove(Pt);
           Wait(50, 100);
           Mouse.Click(MOUSE_LEFT);
@@ -164,8 +194,7 @@ begin
           Exit;
         end;
     end;
-  WriteLn('Player is far from destination, walking via MM.');
-  Pt := [TPA.Mean.X+Random(-6, 6), TPA.Mean.Y+4+Random(-6, 6)];
+  Pt := [TPA.Mean.X+Random(-2, 2), TPA.Mean.Y+4+Random(-2, 2)];
   Mouse.HumanMove(Pt);
   Wait(50, 100);
   Mouse.Click(MOUSE_LEFT);
@@ -217,19 +246,17 @@ begin
     end
 end;
 
-procedure CastOnPurple();
-var
-  TPA: TPointArray;
-  Pt: TPoint;
+procedure GrabGuardian();
+var TPA: TPointArray;
 begin
-  if (not IsPlayerInGreenMarker) then Exit;
+  if (not IsPlayerInGreenMarker()) then Exit();
   SRL.FindColors(TPA, CTS0(16133, 0), Mainscreen.Bounds());
   if (not TPA.Len > 0) then Antiban.RandomRotate()
   else
     begin
-      Magic.CastSpell(ERSSpell.TELEKINETIC_GRAB);
-      Pt := SRL.rowp(Mouse.Position(), TPA.Bounds());
-      Mouse.HumanMove(Pt);
+      if (not Mainscreen.IsUpText('Cast Tele')) then
+        Magic.CastSpell(ERSSpell.TELEKINETIC_GRAB);
+      Mouse.HumanMove(TPA.Mean());
       Wait(50, 150);
       if Mainscreen.IsUpText('Maze Guardian') then
         begin
@@ -237,11 +264,11 @@ begin
           Wait(100, 125);
           if Mainscreen.IsUpText('Talk-to') then
             begin
-              FinishRoom;
-              Exit;
+              FinishRoom();
+              Exit();
             end;
           WaitUntil(not IsPlayerInGreenMarker, 100, 9000);
-          Exit;
+          Exit();
         end
       else Antiban.RandomRotate();
     end;
@@ -250,12 +277,12 @@ end;
 procedure SolveRoom();
 begin
   Antiban.DoAntiban(false, false);
-  if not IsArrowVisible then ExitRoom
+  if not IsArrowVisible() then ExitRoom()
   else
     begin
-      if Chat.HasContinue then FinishRoom
-      else if IsplayerInGreenMarker then CastOnPurple
-      else TravelToArrow;
+      if Chat.HasContinue() then FinishRoom()
+      else if IsplayerInGreenMarker() then GrabGuardian()
+      else TravelToArrow();
     end;
 end;
 
