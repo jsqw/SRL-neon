@@ -10,7 +10,7 @@ begin
 end;
 
 const
-  BREAKAFTER  = 33;
+  BREAKAFTER  = 37;
   BREAKFOR    = 12;
 
 var
