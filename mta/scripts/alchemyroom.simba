@@ -3,6 +3,9 @@ program alchemyroom;
 {$I WaspLib/osr.simba}
 {$DEFINE FORMS_V2}
 
+
+  // HERE YOU CAN EDIT WHICH ACCOUNT YOU WANT TO USE.
+  // FIRST ACCOUNT IN credentials.simba MEANS Login.PlayerIndex := 0
 begin
   Login.PlayerIndex := 0;
 end;
@@ -12,17 +15,23 @@ const
   BREAKFOR    = 12;
 
 var
-  RSW          : TRSWalker;
-  State        : String;
-  Timer        : TStopwatch;
-  StartXP      : Int32;
-  CurrentXP    : Int32;
-  GainedXP     : Int32        := 0;
-  JoinTile     : TPoint       := [268, 110];
-  MidTile      : TPoint       := [450, 625];
-  STATUEAREA   : TPointArray  := [[258, 86], [280, 86], [291, 96], [290, 116], [278, 129], [279, 141], [261, 141], [261, 129], [250, 118], [250, 96]];
-  MTALOBBY     : TPointArray  := [[241, 159], [241, 145], [251, 145], [260, 141], [268, 141], [275, 141], [283, 143], [297, 145], [298, 171], [282, 171], [282, 184], [256, 185], [256, 170], [241, 169]];
-  APROOM       : TPointArray  := [[352, 523], [563, 522], [556, 765], [354, 764]];
+  RSW: TRSWalker;
+  State: String;
+  Timer: TStopwatch;
+  StartXP: Int32;
+  CurrentXP: Int32;
+  GainedXP: Int32 := 0;
+  JoinTile: TPoint := [268, 110];
+  MidTile: TPoint := [450, 625];
+  STATUEAREA: TPointArray := [[258, 86], [280, 86], [291, 96],
+                              [290, 116], [278, 129], [279, 141],
+                              [261, 141], [261, 129], [250, 118],
+                              [250, 96]];
+  MTALOBBY: TPointArray := [[241, 159], [241, 145], [251, 145], [260, 141],
+                            [268, 141], [275, 141], [283, 143], [297, 145],
+                            [298, 171], [282, 171], [282, 184], [256, 185],
+                            [256, 170], [241, 169]];
+  APROOM: TPointArray := [[352, 523], [563, 522], [556, 765], [354, 764]];
 
 
 procedure PauseTimer(Task: PBreakTask);
@@ -42,13 +51,30 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| ~ alchemist's-playground-v0.02 ~ |");
-  WriteLn('| ---------------------------------|');
+  WriteLn('| MTA by n0ll v1.1            |');
+  WriteLn('| The Alchemist''s Playground  |');
+  WriteLn('| ----------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Magic exp      : ', GainedXP);
   WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
   WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
-  WriteLn('| ---------------------------------|');
+  WriteLn('| ----------------------------|');
+end;
+
+
+// Thanks to Flight for helping with this.
+function TRSItemInterface.CountStack(item: TRSItem): Int32; override;
+var
+  box: TBox;
+begin
+  inherited;
+  Result := -1;
+  if Self.Find([item], box) then
+  begin
+    box.X2 := box.X1 + 35;
+    box.Y2 := box.Y1 + 7;
+    Result := SRL.GetItemAmount(box);
+  end;
 end;
 
 procedure SetupAntiBan();
@@ -65,14 +91,36 @@ begin
   Antiban.OnFinishBreak := @ResumeTimer;
 end;
 
+procedure Downloader(const URL, Filename: string);
+var Client: Int32;
+begin
+  Client := InitializeHTTPClient(False);
+  try
+    GetHTTPPageEx(Client, URL, Filename);
+  finally
+    FreeHTTPClient(Client);
+  end;
+end;
+
 procedure InitiateScript();
 begin
+
+  if (not DirectoryExists(AppPath+'\MTA\')) then
+    CreateDirectory(AppPath+'\MTA');
+
+  if (not FileExists(AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png')) then
+    Downloader('https://i.imgur.com/yRapvnM.png', AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png');
+
+  if (not FileExists(AppPath+'\MTA\mta.properties')) then
+    Downloader('https://github.com/jsqw/SRL-neon/blob/main/mta/runelite.properties ',
+    AppPath+'\MTA\mta.properties');
+
   RSW.Setup('mta');
   SRL.Setup();
   SetupAntiBan();
-  if not RSClient.IsLoggedIn then Login.LoginPlayer;
-  WaitUntil(RSClient.IsLoggedIn, 100, 10000);
-  StartXP := XPBar.Read;
+  if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+  WaitUntil(RSClient.IsLoggedIn(), 100, 10000);
+  StartXP := XPBar.Read();
   Timer.Start();
 end;
 
@@ -132,7 +180,10 @@ begin
 end;
 
 procedure ClickArrowOnMs();
-var TPA: TPointArray;
+var
+  TPA: TPointArray;
+  Box: TBox;
+  Pt: TPoint;
 begin
   if Mainscreen.IsUpText('Cast') then Mouse.Click(MOUSE_LEFT);
   WaitUntil(Mainscreen.FindArrow(TPA), 50, 3000);
@@ -142,9 +193,18 @@ begin
       Wait(50, 125);
       if Mainscreen.IsUpText('Cupboard') then
         begin
+          Pt := Mouse.Position();
           Mouse.Click(MOUSE_LEFT);
+          Box := Mainscreen.GetPlayerBox();
+          Box := Box.Expand(15);
+
+          // Let's wait if the player needs to run to the cupboard
+          if (not Box.Contains(Pt)) then
+            WaitEx(2500, 500);
+
           Wait(125, 250);
-        end;
+        end
+      else Antiban.SmallCameraRotation();
     end
   else Antiban.RandomRotate();
 end;
@@ -163,21 +223,22 @@ end;
 procedure DepositCoins();
 var TPA: TPointArray;
 begin
+  RSW.WalkBlind([444, 580]);
+  WaitEx(6000, 250);
   SRL.FindColors(TPA, CTS0(16745203, 0), Mainscreen.Bounds());
-  if (not TPA.Len > 0) then Antiban.RandomRotate()
-  else
+  if TPA.Len > 0 then
     begin
       Mouse.HumanMove(TPA.Mean());
       Wait(25, 75);
       if (Mainscreen.IsUpText('Deposit')) then
-        begin
-          Mouse.Click(MOUSE_LEFT);
-          if (Inventory.CountItemStack('Coins') = 0) then Antiban.DoAntiban;
-        end
-      else Antiban.RandomRotate();
+        Mouse.Click(MOUSE_LEFT);
     end;
-  Wait(5000, 7500);
-  PrintProgress;
+  WaitEx(6000, 250);
+  PrintProgress();
+
+  // Failsafe so we don't break too long before depositing coins.
+  if Inventory.CountItemStack('Coins') < 1 then
+    Antiban.DoAntiban();
 end;
 
 function GetGoodSlots(): TIntegerArray;
@@ -199,10 +260,10 @@ begin
         Result += j;
 end;
 
-procedure AlchItems;
+procedure AlchItems();
 var
-  f, t  : Int64;
-  slots : TIntegerArray;
+  f, t: Int64;
+  slots: TIntegerArray;
 begin
   f := SRL.NormalRange(1, 3);
   t := SRL.NormalRange(7, 12);
@@ -229,17 +290,24 @@ var Coins: Int32;
 begin
   Coins := Inventory.CountItemStack('Coins');
   if (Coins > 5000) then Exit(true);
-  if ((Coins > 1500) and SRL.Dice(10)) then Exit(true);
+  // Every time we have over 2500 coins, there is 5% chance to go for a deposit
+  if ((Coins > 2500) and SRL.Dice(5)) then Exit(true);
   Exit(false);
 end;
 
 procedure SolveRoom();
+var
+  GoodItems: TIntegerArray;
+  ItemCount: Int32;
 begin
   Antiban.DoAntiban(false, false);
+  GoodItems := GetGoodSlots();
+  ItemCount := GoodItems.Len();
   if (not AtTile(MidTile)) then RSW.WalkBlind(MidTile);
-  if ShouldDeposit then DepositCoins
-  else if not Inventory.IsFull then ClickArrowOnMS
-  else if APROOM.Bounds.Contains(RSW.GetMyPos()) then AlchItems;
+  if (ItemCount > 7) then AlchItems();
+  if ShouldDeposit() then DepositCoins()
+  else if not Inventory.IsFull() then ClickArrowOnMS()
+  else if APROOM.Bounds.Contains(RSW.GetMyPos()) then AlchItems();
 end;
 
 begin
