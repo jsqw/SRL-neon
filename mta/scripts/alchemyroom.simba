@@ -231,8 +231,10 @@ begin
       Mouse.HumanMove(TPA.Mean());
       Wait(25, 75);
       if (Mainscreen.IsUpText('Deposit')) then
-        Mouse.Click(MOUSE_LEFT);
-    end;
+        Mouse.Click(MOUSE_LEFT)
+      else
+        Antiban.RandomRotate();
+    end
   WaitEx(6000, 250);
   PrintProgress();
 
@@ -267,6 +269,7 @@ var
 begin
   f := SRL.NormalRange(1, 3);
   t := SRL.NormalRange(7, 12);
+  PrintProgress();
   for f:= f to t do
     begin
       Magic.CastSpell(ERSSPell.HIGH_LEVEL_ALCHEMY);
