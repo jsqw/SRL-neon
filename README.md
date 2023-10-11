@@ -1,6 +1,7 @@
 ### SRL-neon
 
 Scripts made with SRL and WaspLib to be used alongside RuneLite and its plugins.
+All scripts require 32-Bit version of RuneLite and most of the plugins to be disabled.
 
 ### Thanks to:
 
