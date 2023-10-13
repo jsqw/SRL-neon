@@ -51,7 +51,7 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn('| MTA by n0ll v1.1            |');
+  WriteLn('| MTA by n0ll v1.2            |');
   WriteLn('| The Alchemist''s Playground  |');
   WriteLn('| ----------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
@@ -221,22 +221,32 @@ begin
 end;
 
 procedure DepositCoins();
-var TPA: TPointArray;
+var
+  TPA: TPointArray;
+  DepositTile: TPoint := [452, 588];
+  Pt: TPoint;
 begin
-  RSW.WalkBlind([444, 580]);
-  WaitEx(6000, 250);
-  SRL.FindColors(TPA, CTS0(16745203, 0), Mainscreen.Bounds());
-  if TPA.Len > 0 then
+  SRL.FindColors(TPA, CTS2(65521, 1, 0.01, 0.01), Mainscreen.Bounds());
+
+  if (TPA.Len() < 1) then
     begin
-      Mouse.HumanMove(TPA.Mean());
-      Wait(25, 75);
-      if (Mainscreen.IsUpText('Deposit')) then
-        Mouse.Click(MOUSE_LEFT)
-      else
-        Antiban.RandomRotate();
+      RSW.WalkBlind(DepositTile);
+      Antiban.SmallCameraRotation();
+      SRL.FindColors(TPA, CTS2(65521, 1, 0.01, 0.01), Mainscreen.Bounds());
+      if (TPA.Len() < 1) then
+        Exit();
+    end;
+
+  Pt := SRL.rowp(Mouse.Position(), TPA.Bounds());
+  Mouse.HumanMove(Pt);
+
+  if (Mainscreen.IsUpText('Deposit')) then
+    begin
+      Mouse.Click(MOUSE_LEFT);
+      WaitUntil((Inventory.CountItemStack('Coins') < 1), 500, 10000);
     end
-  WaitEx(6000, 250);
-  PrintProgress();
+  else
+    Antiban.RandomRotate();
 
   // Failsafe so we don't break too long before depositing coins.
   if Inventory.CountItemStack('Coins') < 1 then
