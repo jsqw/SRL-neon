@@ -4,7 +4,7 @@ program catfisher;
 {$DEFINE FORMS_V2}
 
 begin
-  Login.PlayerIndex := 0;
+  Login.PlayerIndex := 1;
 end;
 
 var
@@ -32,10 +32,27 @@ begin
   T := Task;
 end;
 
+// A custom Keyboard version of Antiban.RandomRotate()
+// Rotating with mouse3 doesn't work well with RuneLite
+procedure KeyboardRotate();
+var
+  Arrow: Integer;
+  Duration: Int64;
+begin
+  if SRL.Dice(50) then
+    Arrow := $25
+  else
+    Arrow := $27;
+  Duration := SRL.NormalRange(500, 1500);
+  Keyboard.KeyDown(Arrow);
+  Sleep(Duration);
+  Keyboard.KeyUp(Arrow);
+end;
+
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| Ruins of Camdozaal Fisher v1.0 |");
+  WriteLn("| Ruins of Camdozaal Fisher v1.1 |");
   WriteLn('| -------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Gained exp     : ', GainedXP);
@@ -46,10 +63,10 @@ end;
 
 procedure SetupAntiBan();
 begin
-  Antiban.Skills := [ERSSKILL.PRAYER];
+  Antiban.Skills := [ERSSKILL.PRAYER, ERSSKILL.TOTAL];
   Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.RandomRightClick);
   Antiban.AddTask(ONE_SECOND  * 45,  @Mouse.RandomMovement);
-  Antiban.AddTask(ONE_MINUTE  * 5,   @Antiban.RandomRotate);
+  Antiban.AddTask(ONE_MINUTE  * 5,   @KeyboardRotate);
   Antiban.AddTask(ONE_MINUTE  * 15,  @Antiban.HoverSkills);
   Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.LoseFocus);
   Antiban.AddBreak(ONE_MINUTE * 5, ONE_SECOND*10, 0.2, 0);
@@ -59,7 +76,7 @@ begin
   Antiban.OnFinishBreak := @ResumeTimer;
 end;
 
-function InKitchen: Boolean;
+function InKitchen(): Boolean;
 begin
   Result := RSW.GetMyPos.DistanceTo([1098, 3978]) <= 16;
 end;
@@ -109,6 +126,9 @@ var
   TPA: TPointArray;
   Finder: TRSObjectFinder;
 begin
+  CalculateXP();
+  PrintProgress();
+
   Finder.Colors += HLColor;
   Finder.Grow := 4;
   Finder.ClusterDistance := 4;
@@ -151,7 +171,7 @@ begin
       Make.Select(0, Make.QUANTITY_ALL, True);
       WaitUntil(Count > GetTypeCount(RawFish), 1000, 40000);
     end
-  else Antiban.RandomRotate();
+  else KeyboardRotate();
 end;
 
 procedure DropJunk();
@@ -183,7 +203,7 @@ begin
       CalculateXP();
       PrintProgress();
     end
-  else Antiban.RandomRotate();
+  else KeyboardRotate();
 end;
 
 function GetState(): String;
