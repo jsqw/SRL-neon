@@ -8,6 +8,8 @@ begin
 end;
 
 var
+  // DROP MAUL HANDLE, True OR False (Can be alched for ~5k)
+  BHandle: Boolean := True;
   RSW: TRSWalker;
   State: String;
   Timer: TStopwatch;
@@ -52,7 +54,7 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| Ruins of Camdozaal Fisher v1.1 |");
+  WriteLn("| Ruins of Camdozaal Fisher v1.2 |");
   WriteLn('| -------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Gained exp     : ', GainedXP);
@@ -89,6 +91,7 @@ begin
   WaitUntil(RSClient.IsLoggedIn(), 100, 10000);
   StartXP := XPBar.Read();
   Timer.Start();
+  if BHandle then JunkFish += 'Barronite handle';
 end;
 
 function IsFishing(): Boolean;
@@ -149,6 +152,25 @@ begin
   Wait(2000, 4000);
 end;
 
+procedure DropUncookable();
+var CookingLevel: Int32;
+begin
+  CookingLevel := Stats.GetLevel(ERSSKILL.COOKING);
+
+  if CookingLevel > 46 then
+    Exit();
+
+  if ((CookingLevel < 46) and Inventory.ContainsItem('Raw catfish')) then
+    Inventory.ShiftDrop(['Raw catfish'], DROP_PATTERN_REGULAR);
+
+  if ((CookingLevel < 33) and Inventory.ContainsItem('Raw tetra')) then
+    Inventory.ShiftDrop(['Raw tetra'], DROP_PATTERN_REGULAR);
+
+  if ((CookingLevel < 20) and Inventory.ContainsItem('Raw cavefish')) then
+    Inventory.ShiftDrop(['Raw cavefish'], DROP_PATTERN_REGULAR);
+
+end;
+
 procedure CookFish();
 var
   TableLocation: TPoint := [1108, 3970];
@@ -156,7 +178,9 @@ var
   Count: Int32;
 begin
   if not InKitchen then
-  RSW.WalkBlind([1098, 3978]);
+    RSW.WalkBlind([1098, 3978]);
+
+  DropUncookable();
 
   Rect := RSW.GetTileMS(TableLocation);
   Rect := Rect.Expand(4);
@@ -213,6 +237,8 @@ var
   InvFull: Boolean := False;
 begin
   if IsFishing then Exit('FISHING');
+
+  if RSClient.IsLoggedIn() then CalculateXP();
 
   if Inventory.ContainsAny(RawFish) then
   HasRaw := True;
