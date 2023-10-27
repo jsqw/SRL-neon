@@ -1,0 +1,252 @@
+program bonfirer;
+{$DEFINE SRL_USE_REMOTEINPUT}
+{$I WaspLib/osr.simba}
+{$DEFINE FORMS_V2}
+
+begin
+  Login.PlayerIndex := 2;
+end;
+
+// normaltree color: CTS2(1033150, 9, 0.06, 1.68)
+// oak color: CTS2(10494405, 5, 0.77, 5.89)
+// willow color: CTS2(13703445, 6, 0.09, 3.59)
+// firecolor: CTS2(3979735, 9, 0.08, 1.83)
+
+// topleft:   {X = 7024, Y = 3172}
+// botright:  {X = 7172, Y = 3264}
+
+var
+  RSW: TRSWalker;
+  State: String;
+  Timer: TStopwatch;
+  Woodcutting: Int32;
+  Firemaking: Int32;
+  StartWc, StartFm: Int32;
+  StartXP: Int32;
+  CurrentXP: Int32;
+  GainedXP: Int32 := 0;
+  SafeArea: TBox := [7024, 3172, 7172, 3264];
+  CutTiles: TPointArray := [[7080, 3216], [7108, 3228], [7052, 3240]];
+  WalkTile: TPoint := [7080, 3216];
+  THLColor: TCTS2Color := CTS2(1033150, 9, 0.06, 1.68);
+  Log: TRSItem := 'Logs';
+
+procedure PauseTimer(Task: PBreakTask);
+var T: PBreakTask;
+begin
+  Timer.Pause;
+  T := Task;
+end;
+
+procedure ResumeTimer(Task: PBreakTask);
+var T: PBreakTask;
+begin
+  Timer.Resume;
+  T := Task;
+end;
+
+// A custom Keyboard version of Antiban.RandomRotate()
+// Rotating with mouse3 doesn't work well with RuneLite
+procedure KeyboardRotate();
+var
+  Arrow: Integer;
+  Duration: Int64;
+begin
+  if SRL.Dice(50) then
+    Arrow := $25
+  else
+    Arrow := $27;
+  Duration := SRL.NormalRange(500, 1500);
+  Keyboard.KeyDown(Arrow);
+  Sleep(Duration);
+  Keyboard.KeyUp(Arrow);
+end;
+
+procedure PrintProgress();
+begin
+  ClearDebug();
+  WriteLn("| Bonfirer                  v0.1 |");
+  WriteLn('| -------------------------------|');
+  WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
+  WriteLn('| Gained exp     : ', GainedXP);
+  WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
+  WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
+  WriteLn('| -------------------------------|');
+end;
+
+procedure UpdateLevels();
+begin
+  if (not RSClient.IsLoggedIn()) then
+    Exit();
+  Woodcutting := Stats.GetLevel(ERSSKILL.WOODCUTTING);
+  Firemaking := Stats.GetLevel(ERSSKILL.FIREMAKING);
+
+  if ((Woodcutting > 29) and (Firemaking > 29)) then
+    begin
+      THLColor := CTS2(13703445, 6, 0.09, 3.59);
+      WalkTile := CutTiles[2];
+      Log := 'Willow logs';
+    end
+  else if ((Woodcutting > 14) and (Firemaking > 14)) then
+    begin
+      THLColor := CTS2(10494405, 5, 0.77, 5.89);
+      WalkTile := CutTiles[1];
+      Log := 'Oak logs';
+    end
+end;
+
+procedure SetupAntiBan();
+begin
+  Antiban.Skills := [ERSSKILL.FIREMAKING, ERSSKILL.TOTAL];
+  Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.RandomRightClick);
+  Antiban.AddTask(ONE_SECOND  * 45,  @Mouse.RandomMovement);
+  Antiban.AddTask(ONE_MINUTE  * 5,   @KeyboardRotate);
+  // We are using antiban to randomly check for updated stats
+  Antiban.AddTask(ONE_MINUTE  * 5,   @UpdateLevels);
+  Antiban.AddTask(ONE_MINUTE  * 15,  @Antiban.HoverSkills);
+  Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.LoseFocus);
+  Antiban.AddBreak(ONE_MINUTE * 5, ONE_SECOND*10, 0.2, 0);
+  Antiban.AddBreak(40 * ONE_MINUTE, 8 * ONE_MINUTE);
+  Antiban.AddBreak(12 * ONE_HOUR, 4 * ONE_HOUR);
+  Antiban.OnStartBreak := @PauseTimer;
+  Antiban.OnFinishBreak := @ResumeTimer;
+end;
+
+procedure InitiateScript();
+begin
+  RSW.Setup('world');
+  SetupAntiBan();
+  if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+  WaitUntil(RSClient.IsLoggedIn(), 100, 10000);
+  StartXP := XPBar.Read();
+  Timer.Start();
+  UpdateLevels();
+  WriteLn(RSW.GetMyPos);
+  StartWc := Woodcutting;
+  StartFm := Firemaking;
+  WriteLn('Start XP:', StartXP);
+end;
+
+function IsCutting(): Boolean;
+var
+  PluginArea: TBox := [0, 273, 141, 336];
+  PluginColor: TCTS2Color := CTS2(65280, 1, 0.01, 0.01);
+begin
+  Result := SRL.CountColor(PluginColor, PluginArea) > 10;
+end;
+
+procedure CalculateXP();
+var t: Int32;
+begin
+  CurrentXP := XPBar.Read();
+  t         := GainedXP;
+  GainedXP  := CurrentXP - StartXP;
+  if GainedXP > t then Timer.Reset();
+  if Timer.ElapsedTime > 300000 then TerminateScript('No Gained XP in 5 minutes!');
+end;
+
+function GetTypeCount(Items: TRSItemArray): Int32;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Items) do
+    if Inventory.ContainsItem(Items[i]) then
+    Result := Result+1;
+end;
+
+procedure MakeFire();
+var
+  FireColor: TCTS2Color := CTS2(3979735, 9, 0.08, 1.83);
+  LogTypes: TRSItemArray := ['Logs', 'Oak logs', 'Willow logs'];
+  STPA: TPointArray;
+  ATPA: T2DPointArray;
+  TPA: TPointArray;
+  Finder: TRSObjectFinder;
+  i: Int32;
+  Pt: TPoint;
+  TB: TBox;
+begin
+  Inventory.Use('TinderBox', Log);
+  Wait(6000, 8000);
+
+  TB := Mainscreen.GetPlayerBox.Expand(30);
+  SRL.FindColors(TPA, FireColor, TB);
+  Inventory.HoverItem(Log);
+  Mouse.Click(MOUSE_LEFT);
+  Pt := SRL.rowp(Mouse.Position(), TPA.Bounds());
+  Mouse.HumanMove(Pt);
+  if (Mainscreen.IsUpText('Fire')) then
+    begin
+      Mouse.Click(MOUSE_LEFT);
+      WaitUntil(Make.IsOpen(), 200, 4000);
+      Make.Select(0, Make.QUANTITY_ALL, True);
+      WaitUntil(not Inventory.ContainsItem(Log), 1000, 54000);
+    end;
+  PrintProgress();
+end;
+
+procedure ClickTree();
+var
+  STPA: TPointArray;
+  ATPA: T2DPointArray;
+  TPA: TPointArray;
+  Finder: TRSObjectFinder;
+begin
+  Finder.Colors += THLColor;
+  Finder.Grow := 4;
+  Finder.ClusterDistance := 4;
+
+  ATPA := MainScreen.FindObject(Finder);
+  if ATPA.Len < 1 then
+    begin
+      RSW.WalkBlind(WalkTile);
+      Exit();
+    end;
+
+  for TPA in ATPA do
+    STPA += TPA.Mean();
+  STPA.Sort([Mainscreen.GetPlayerBox.Middle.X, Mainscreen.GetPlayerBox.Y2]);
+  Mouse.HumanMove(STPA[0]);
+  if Mainscreen.IsUpText('Chop') then
+  Mouse.Click(MOUSE_LEFT);
+  Wait(2000, 4000);
+end;
+
+function GetState(): String;
+var Pos: TPoint;
+begin
+  CalculateXP();
+  Pos := RSW.GetMyPos();
+
+  if not SafeArea.Contains(Pos) then
+    Exit('LOST');
+
+  if IsCutting() then
+    Exit('CUTTING');
+
+  if not Inventory.IsFull() then
+    Exit('CUT_TREE');
+
+  Exit('MAKE_FIRE');
+end;
+
+begin
+  InitiateScript();
+  repeat
+    begin
+      Antiban.DoAntiban();
+      if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+      State := GetState();
+      WriteLn('State: ', State);
+
+      case State of
+        'CUTTING': Wait(200);
+        'LOST': TerminateScript('We seem to be out of the area.');
+        'CUT_TREE': ClickTree();
+        'MAKE_FIRE': MakeFire();
+      end;
+
+      Wait(1000);
+    end;
+  until false;
+end.
