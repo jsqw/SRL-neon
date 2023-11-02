@@ -7,14 +7,6 @@ begin
   Login.PlayerIndex := 2;
 end;
 
-// normaltree color: CTS2(1033150, 9, 0.06, 1.68)
-// oak color: CTS2(10494405, 5, 0.77, 5.89)
-// willow color: CTS2(13703445, 6, 0.09, 3.59)
-// firecolor: CTS2(3979735, 9, 0.08, 1.83)
-
-// topleft:   {X = 7024, Y = 3172}
-// botright:  {X = 7172, Y = 3264}
-
 var
   RSW: TRSWalker;
   State: String;
@@ -65,13 +57,13 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| Bonfirer                  v0.1 |");
-  WriteLn('| -------------------------------|');
-  WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
-  WriteLn('| Gained exp     : ', GainedXP);
-  WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
-  WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
-  WriteLn('| -------------------------------|');
+  WriteLn("| Bonfirer           v0.2 |");
+  WriteLn('| ------------------------|');
+  WriteLn('| Runtime    : ', SRL.MsToTime(GetTimeRunning, Time_Short));
+  WriteLn('| Experience : ', GainedXP);
+  WriteLn('| Failsafe   : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
+  WriteLn('| Next break : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
+  WriteLn('| ------------------------|');
 end;
 
 procedure UpdateLevels();
@@ -112,6 +104,19 @@ begin
   Antiban.OnFinishBreak := @ResumeTimer;
 end;
 
+procedure Free();
+begin
+  ClearDebug();
+  UpdateLevels();
+  WriteLn('Bonfirer stopped.');
+  WriteLn('Runtime: ', SRL.MsToTime(GetTimeRunning, Time_Short));
+  WriteLn('Gained exp: ', GainedXP);
+  WriteLn('We started with: ', StartWc, 'WC');
+  WriteLn('We started with: ', StartFm, 'FM');
+  WriteLn('We stopped with: ', Woodcutting, 'WC');
+  WriteLn('We stopped with: ', Firemaking, 'FM');
+end;
+
 procedure InitiateScript();
 begin
   RSW.Setup('world');
@@ -125,6 +130,7 @@ begin
   StartWc := Woodcutting;
   StartFm := Firemaking;
   WriteLn('Start XP:', StartXP);
+  AddOnTerminate(@Free);
 end;
 
 function IsCutting(): Boolean;
@@ -156,32 +162,50 @@ end;
 
 procedure MakeFire();
 var
-  FireColor: TCTS2Color := CTS2(3979735, 9, 0.08, 1.83);
-  LogTypes: TRSItemArray := ['Logs', 'Oak logs', 'Willow logs'];
-  STPA: TPointArray;
-  ATPA: T2DPointArray;
-  TPA: TPointArray;
-  Finder: TRSObjectFinder;
-  i: Int32;
+  GroundLogColor: TCTS2Color := CTS2(15432, 1, 0.15, 0.01);
+  FireColor: TCTS2Color := CTS2(3124950, 11, 0.06, 0.90);
+  xp: Int32;
   Pt: TPoint;
-  TB: TBox;
+  fireAndLogs: TPointArray;
+  fireTPA: TPointArray;
+  logsTPA: TPointArray;
 begin
-  Inventory.Use('TinderBox', Log);
-  Wait(6000, 8000);
+  SRL.FindColors(fireTPA, FireColor, Mainscreen.GetPlayerBox.Expand(20));
+  SRL.FindColors(logsTPA, GroundLogColor, Mainscreen.GetPlayerBox.Expand(20));
+  fireAndLogs := fireTPA.Combine(logsTPA).Cluster(1).Biggest();
 
-  TB := Mainscreen.GetPlayerBox.Expand(30);
-  SRL.FindColors(TPA, FireColor, TB);
-  Inventory.HoverItem(Log);
-  Mouse.Click(MOUSE_LEFT);
-  Pt := SRL.rowp(Mouse.Position(), TPA.Bounds());
-  Mouse.HumanMove(Pt);
-  if (Mainscreen.IsUpText('Fire')) then
+  xp := XPBar.Read();
+
+  if fireAndLogs.Len > 0 then
+    // bonfire probably found
+    Pt := SRL.rowp(Mouse.Position(), fireAndLogs.Bounds())
+  else
+    // bonfire not found, create new one
     begin
-      Mouse.Click(MOUSE_LEFT);
-      WaitUntil(Make.IsOpen(), 200, 4000);
-      Make.Select(0, Make.QUANTITY_ALL, True);
-      WaitUntil(not Inventory.ContainsItem(Log), 1000, 54000);
+      Inventory.Use('TinderBox', Log);
+      WaitUntil((xp < XPBar.Read()), 200, 15000);
+      // Wait the animation
+      Wait(2500, 5000);
+      SRL.FindColors(fireTPA, FireColor, Mainscreen.GetPlayerBox.Expand(20));
+      SRL.FindColors(logsTPA, GroundLogColor, Mainscreen.GetPlayerBox.Expand(20));
+      fireAndLogs := fireTPA.Combine(logsTPA).Cluster(1).Biggest();
+      Pt := SRL.rowp(Mouse.Position(), fireAndLogs.Bounds());
     end;
+
+  Inventory.MouseItem(Log);
+  Mouse.Click(MOUSE_LEFT);
+  Mouse.HumanMove(Pt);
+  if Mainscreen.IsUpText('ire') then
+    Mouse.Click(MOUSE_LEFT)
+  else
+    begin
+      KeyboardRotate();
+      Exit();
+    end;
+
+  WaitUntil(Make.IsOpen(), 200, 4000);
+  Make.Select(0, Make.QUANTITY_ALL, True);
+  WaitUntil(not Inventory.ContainsItem(Log), 1000, 75000);
   PrintProgress();
 end;
 
@@ -207,7 +231,6 @@ begin
     STPA += TPA.Mean();
   STPA.Sort([Mainscreen.GetPlayerBox.Middle.X, Mainscreen.GetPlayerBox.Y2]);
   Mouse.HumanMove(STPA[0]);
-  if Mainscreen.IsUpText('Chop') then
   Mouse.Click(MOUSE_LEFT);
   Wait(2000, 4000);
 end;
@@ -237,15 +260,13 @@ begin
       Antiban.DoAntiban();
       if not RSClient.IsLoggedIn() then Login.LoginPlayer();
       State := GetState();
-      WriteLn('State: ', State);
-
+      //WriteLn('State: ', State);
       case State of
         'CUTTING': Wait(200);
         'LOST': TerminateScript('We seem to be out of the area.');
         'CUT_TREE': ClickTree();
         'MAKE_FIRE': MakeFire();
       end;
-
       Wait(1000);
     end;
   until false;
