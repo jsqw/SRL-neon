@@ -20,8 +20,14 @@ var
   SafeArea: TBox := [7024, 3172, 7172, 3264];
   CutTiles: TPointArray := [[7080, 3216], [7108, 3228], [7052, 3240]];
   WalkTile: TPoint := [7080, 3216];
-  THLColor: TCTS2Color := CTS2(1033150, 9, 0.06, 1.68);
+  FireTiles: TPointArray := [[7104, 3224], [7100, 3224], [7104, 3224]];
+  THLColor: TCTS2Color := CTS2(221938, 2, 0.18, 1.36);
   Log: TRSItem := 'Logs';
+
+  // Colors:
+  // Normal tree (orange): CTS2(221938, 2, 0.18, 1.36)
+  // Oak Tree (pink): CTS2(13964519, 1, 1.43, 15.94)
+  // Willow (blue): CTS2(13245722, 6, 0.06, 4.34)
 
 procedure PauseTimer(Task: PBreakTask);
 var T: PBreakTask;
@@ -57,7 +63,7 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| Bonfirer           v0.2 |");
+  WriteLn("| Bonfirer           v0.3 |");
   WriteLn('| ------------------------|');
   WriteLn('| Runtime    : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Experience : ', GainedXP);
@@ -70,18 +76,18 @@ procedure UpdateLevels();
 begin
   if (not RSClient.IsLoggedIn()) then
     Exit();
-  Woodcutting := Stats.GetLevel(ERSSKILL.WOODCUTTING);
-  Firemaking := Stats.GetLevel(ERSSKILL.FIREMAKING);
+  Woodcutting := Stats.GetLevel(ERSSKILL.WOODCUTTING, False);
+  Firemaking := Stats.GetLevel(ERSSKILL.FIREMAKING, False);
 
   if ((Woodcutting > 29) and (Firemaking > 29)) then
     begin
-      THLColor := CTS2(13703445, 6, 0.09, 3.59);
+      THLColor := CTS2(13245722, 6, 0.06, 4.34);
       WalkTile := CutTiles[2];
       Log := 'Willow logs';
     end
   else if ((Woodcutting > 14) and (Firemaking > 14)) then
     begin
-      THLColor := CTS2(10494405, 5, 0.77, 5.89);
+      THLColor := CTS2(13964519, 1, 1.43, 15.94);
       WalkTile := CutTiles[1];
       Log := 'Oak logs';
     end
@@ -151,27 +157,21 @@ begin
   if Timer.ElapsedTime > 300000 then TerminateScript('No Gained XP in 5 minutes!');
 end;
 
-function GetTypeCount(Items: TRSItemArray): Int32;
-var
-  i: Int32;
-begin
-  for i := 0 to High(Items) do
-    if Inventory.ContainsItem(Items[i]) then
-    Result := Result+1;
-end;
-
 procedure MakeFire();
 var
   GroundLogColor: TCTS2Color := CTS2(15432, 1, 0.15, 0.01);
   FireColor: TCTS2Color := CTS2(3124950, 11, 0.06, 0.90);
   xp: Int32;
-  Pt: TPoint;
+  Pt, Tile: TPoint;
   fireAndLogs: TPointArray;
   fireTPA: TPointArray;
   logsTPA: TPointArray;
 begin
-  SRL.FindColors(fireTPA, FireColor, Mainscreen.GetPlayerBox.Expand(20));
-  SRL.FindColors(logsTPA, GroundLogColor, Mainscreen.GetPlayerBox.Expand(20));
+  Tile := FireTiles.RandomValue();
+  RSW.WalkBlind(Tile);
+
+  SRL.FindColors(fireTPA, FireColor, Mainscreen.GetPlayerBox.Expand(10));
+  SRL.FindColors(logsTPA, GroundLogColor, Mainscreen.GetPlayerBox.Expand(10));
   fireAndLogs := fireTPA.Combine(logsTPA).Cluster(1).Biggest();
 
   xp := XPBar.Read();
@@ -184,7 +184,7 @@ begin
     begin
       Inventory.Use('TinderBox', Log);
       WaitUntil((xp < XPBar.Read()), 200, 15000);
-      // Wait the animation
+      // wait the animation
       Wait(2500, 5000);
       SRL.FindColors(fireTPA, FireColor, Mainscreen.GetPlayerBox.Expand(20));
       SRL.FindColors(logsTPA, GroundLogColor, Mainscreen.GetPlayerBox.Expand(20));
@@ -199,7 +199,7 @@ begin
     Mouse.Click(MOUSE_LEFT)
   else
     begin
-      KeyboardRotate();
+      Mouse.Click(MOUSE_LEFT);
       Exit();
     end;
 
