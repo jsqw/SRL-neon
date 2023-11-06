@@ -9,7 +9,8 @@ end;
 
 var
   // DROP MAUL HANDLE, True OR False (Can be alched for ~5k)
-  BHandle: Boolean := True;
+  BHandle: Boolean := False;
+  CookingLvl: Int32;
   RSW: TRSWalker;
   State: String;
   Timer: TStopwatch;
@@ -34,6 +35,11 @@ begin
   T := Task;
 end;
 
+procedure UpdateCooking();
+begin
+  CookingLvl := Stats.GetLevel(ERSSKILL.COOKING, False);
+end;
+
 // A custom Keyboard version of Antiban.RandomRotate()
 // Rotating with mouse3 doesn't work well with RuneLite
 procedure KeyboardRotate();
@@ -54,7 +60,7 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| Ruins of Camdozaal Fisher v1.2 |");
+  WriteLn("| Ruins of Camdozaal Fisher v1.3 |");
   WriteLn('| -------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Gained exp     : ', GainedXP);
@@ -70,6 +76,8 @@ begin
   Antiban.AddTask(ONE_SECOND  * 45,  @Mouse.RandomMovement);
   Antiban.AddTask(ONE_MINUTE  * 5,   @KeyboardRotate);
   Antiban.AddTask(ONE_MINUTE  * 15,  @Antiban.HoverSkills);
+    // We are using antiban to randomly check for updated stats
+  Antiban.AddTask(ONE_MINUTE  * 5,   @UpdateCooking);
   Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.LoseFocus);
   Antiban.AddBreak(ONE_MINUTE * 5, ONE_SECOND*10, 0.2, 0);
   Antiban.AddBreak(40 * ONE_MINUTE, 8 * ONE_MINUTE);
@@ -91,6 +99,7 @@ begin
   WaitUntil(RSClient.IsLoggedIn(), 100, 10000);
   StartXP := XPBar.Read();
   Timer.Start();
+  UpdateCooking();
   if BHandle then JunkFish += 'Barronite handle';
 end;
 
@@ -153,22 +162,53 @@ begin
 end;
 
 procedure DropUncookable();
-var CookingLevel: Int32;
 begin
-  CookingLevel := Stats.GetLevel(ERSSKILL.COOKING);
-
-  if CookingLevel > 46 then
+  if CookingLvl > 46 then
     Exit();
 
-  if ((CookingLevel < 46) and Inventory.ContainsItem('Raw catfish')) then
+  if ((CookingLvl < 46) and Inventory.ContainsItem('Raw catfish')) then
     Inventory.ShiftDrop(['Raw catfish'], DROP_PATTERN_REGULAR);
 
-  if ((CookingLevel < 33) and Inventory.ContainsItem('Raw tetra')) then
+  if ((CookingLvl < 33) and Inventory.ContainsItem('Raw tetra')) then
     Inventory.ShiftDrop(['Raw tetra'], DROP_PATTERN_REGULAR);
 
-  if ((CookingLevel < 20) and Inventory.ContainsItem('Raw cavefish')) then
+  if ((CookingLvl < 20) and Inventory.ContainsItem('Raw cavefish')) then
     Inventory.ShiftDrop(['Raw cavefish'], DROP_PATTERN_REGULAR);
 
+end;
+
+procedure BankHandles();
+var
+  Path: TPointArray := [[1090, 3938], [1086, 3902], [1118, 3886], [1166, 3886],
+                        [1226, 3878], [1262, 3878]];
+  BankTile: TPoint := [1282, 3874];
+  ReversePath: TPointArray;
+  Rect: TRectangle;
+  Handle: TRSBankItem := ['Barronite handle', Bank.QUANTITY_ALL, False];
+
+begin
+  if RSW.GetMyPos.DistanceTo(BankTile) > 36 then
+    RSW.WalkPath(Path);
+
+  Rect := RSW.GetTileMs(BankTile);
+  Rect := Rect.Expand(15);
+  Mouse.HumanMove(Rect.Bounds.Center());
+
+  if Mainscreen.IsUpText('Bank') then
+    begin
+      Mouse.Click(MOUSE_LEFT);
+      WaitUntil(Bank.IsOpen, 500, 10000);
+      Bank.DepositItem(Handle, False);
+      WaitEx(1500, 500);
+      Bank.Close();
+      ReversePath := Path.Reversed();
+      RSW.WalkPath(ReversePath);
+    end
+  else
+    begin
+      KeyboardRotate();
+      Exit();
+    end;
 end;
 
 procedure CookFish();
@@ -249,6 +289,9 @@ begin
   if Inventory.ContainsAny(CookedFish) then
   HasCooked := True;
 
+  if (Inventory.CountItem('Barronite handle') > 10) then
+  Exit('BANK_HANDLES');
+
   if HasRaw and HasCooked then
   Exit('COOK_FISH');
 
@@ -283,6 +326,7 @@ begin
         'START_FISH': ClickFishSpot();
         'COOK_FISH': CookFish();
         'OFFER_FISH': OfferFish();
+        'BANK_HANDLES': BankHandles();
         'UNKNOWN_STATE': WriteLn('UNKNOWN STATE!');
       end;
       Wait(1000);
