@@ -50,13 +50,13 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| ~    seers hopper v0.02    ~ |");
-  WriteLn('| -----------------------------|');
+  WriteLn("| ~     seers hopper v0.03     ~ |");
+  WriteLn('| -------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Agility exp    : ', GainedXP);
   WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
   WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
-  WriteLn('| -----------------------------|');
+  WriteLn('| -------------------------------|');
 end;
 
 // A custom Keyboard version of Antiban.RandomRotate()
@@ -206,6 +206,7 @@ begin
   SRL.FindColors(TPA, HLColor, Rect.Bounds());
   if TPA.Len() > 0 then
   begin
+    TPA := Mainscreen.Filter(TPA);
     XP := XPBar.Read();
     Pt := SRL.rowp(TPA.Mean(), TPA.Bounds());
     Mouse.HumanMove(Pt);
@@ -219,7 +220,8 @@ begin
     else KeyboardRotate();
     WriteLn('Unable to find next obstacle!');
     Exit();
-  end;
+  end
+  else KeyboardRotate();
 end
 
 begin
