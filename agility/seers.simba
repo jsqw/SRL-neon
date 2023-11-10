@@ -50,7 +50,7 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| ~     seers hopper v0.03     ~ |");
+  WriteLn("| ~     seers hopper v0.04     ~ |");
   WriteLn('| -------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Agility exp    : ', GainedXP);
@@ -206,15 +206,17 @@ begin
   SRL.FindColors(TPA, HLColor, Rect.Bounds());
   if TPA.Len() > 0 then
   begin
-    TPA := Mainscreen.Filter(TPA);
     XP := XPBar.Read();
     Pt := SRL.rowp(TPA.Mean(), TPA.Bounds());
     Mouse.HumanMove(Pt);
-    WaitEx(250, 25);
+    WaitEx(125, 25);
     if MainScreen.IsUpText(['Climb', 'Jump', 'Balance', 'Cross', 'Leap', 'Hurdle', 'Vault', 'Jump-off']) then
       begin
         Mouse.Click(MOUSE_LEFT);
         WaitUntil(((XPBar.Read > XP) or AreaArray[0].Contains(RSW.GetMyPos())), 200, 10000);
+        if Step = 3 then
+          Wait(400);
+        WaitEx(150, 25);
         Exit();
       end
     else KeyboardRotate();
@@ -239,4 +241,3 @@ begin
     end;
   until false;
 end.
-
