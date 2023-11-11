@@ -87,15 +87,8 @@ end;
 procedure InitiateScript();
 begin
 
-  if (not DirectoryExists(AppPath+'\MTA\')) then
-    CreateDirectory(AppPath+'\MTA');
-
   if (not FileExists(AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png')) then
     Downloader('https://i.imgur.com/yRapvnM.png', AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png');
-
-  if (not FileExists(AppPath+'\MTA\mta.properties')) then
-    Downloader('https://github.com/jsqw/SRL-neon/blob/main/mta/runelite.properties ',
-    AppPath+'\MTA\mta.properties');
 
   RSW.Setup('mta');
   SRL.Setup();
@@ -105,6 +98,7 @@ begin
   StartXP := XPBar.Read();
   Timer.Start();
 end;
+
 
 procedure CalculateXP();
 var t: Int32;

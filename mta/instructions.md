@@ -20,12 +20,17 @@ The creature graveyard script banks with rings of dueling and returns to the min
 ## General instructions:
 
 1. Download scripts into Simba/Scripts folder
-2. After running a Script for the first time, it will create MTA folder in your Simba folder and insert MTA.properties in it, please import and activate the file in your RuneLite settings
-3. Select the RuneLite window with Simba's target selector
-4. The scripts work best with fixed mode enabled and client zoomed far out
-5. Make sure you have enough of the required runes in inventory
-6. Make sure you have your brightness set to 100 %
-7. Run script
+2. Save the runelite.properties file onto your local machine
+
+- You can copy its contents and save it with notepad
+- Make sure to save as all files with the .properties extension
+
+3. Import and activate the Runelite profile, then restart RuneLite
+4. Select the RuneLite window with Simba's target selector
+5. The scripts work best with fixed mode enabled and client zoomed far out
+6. Make sure you have enough of the required runes in inventory
+7. Make sure you have your brightness set to 100 %
+8. Run script
 
 ## Instructions for specific rooms:
 
