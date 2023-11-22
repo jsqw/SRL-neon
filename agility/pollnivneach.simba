@@ -4,7 +4,7 @@ program pollnivneach;
 {$DEFINE FORMS_V2}
 
 begin
-  Login.PlayerIndex := 0;
+  Login.PlayerIndex := 1;
 end;
 
 var
@@ -143,6 +143,7 @@ var
   GoalTile: TPoint;
   CurrentTile: TPoint;
   Path: TPointArray;
+  tb: TBox;
 begin
   CalculateXP();
   PrintProgress();
@@ -151,8 +152,9 @@ begin
   Path := [[1470, 108], [1474, 152], [1474, 192], [1454, 220], [1442, 240], GoalTile];
   RSW.WalkPath(Path);
   Rect := RSW.GetTileMs(ObstacleArray[0]);
-  Rect := Rect.Expand(30);
-  SRL.FindColors(TPA, HLColor, Rect.Bounds());
+  tb := Rect.Bounds();
+  tb.LimitTo(Mainscreen.Bounds());
+  SRL.FindColors(TPA, HLColor, tb);
   if TPA.Len() > 0 then
   begin
     XP := XPBar.Read();
@@ -180,23 +182,31 @@ var
   XP: Int32;
   graceATPA: T2DPointArray;
   GoalTile: TPoint;
+  tb: TBox;
 begin
   GoalTile := StartTileArray.RandomValue();
 
   if Step = 1 then
     RSW.WalkBlind(GoalTile);
 
-  RSGroundItems.MarkOfGrace.Find(graceATPA);
-  if RSGroundItems.MarkOfGrace.Find(graceATPA) then
-    if AreaArray[Step].Contains(RSGroundItems.MarkOfGrace.ClosestDot) then
-      begin
-          RSGroundItems.MarkOfGrace.Click(true, 1);
-          Wait(2000, 2500);
-      end;
+
+  // pollnivneach course start room has items on ground and similar colored windows to mog
+  if Step > 1 then
+    begin
+      RSGroundItems.MarkOfGrace.Find(graceATPA);
+      if RSGroundItems.MarkOfGrace.Find(graceATPA) then
+        if AreaArray[Step].Contains(RSGroundItems.MarkOfGrace.ClosestDot) then
+          begin
+            RSGroundItems.MarkOfGrace.Click(true, 1);
+            Wait(2000, 2500);
+          end;
+    end;
 
   Rect := RSW.GetTileMs(ObstacleArray[Step]);
   Rect := Rect.Expand(30);
-  SRL.FindColors(TPA, HLColor, Rect.Bounds());
+  tb := Rect.Bounds();
+  tb.LimitTo(Mainscreen.Bounds());
+  SRL.FindColors(TPA, HLColor, tb);
   if TPA.Len() > 0 then
   begin
     XP := XPBar.Read();
@@ -206,7 +216,7 @@ begin
     if MainScreen.IsUpText(['Climb', 'Jump', 'Grab', 'Balance', 'Cross', 'Leap', 'Hurdle', 'Vault', 'Jump-off']) then
       begin
         Mouse.Click(MOUSE_LEFT);
-        WaitUntil(((XPBar.Read > XP) or AreaArray[0].Contains(RSW.GetMyPos())), 200, 10000);
+        WaitUntil(((XPBar.Read > XP) or AreaArray[1].Contains(RSW.GetMyPos())), 200, 10000);
         WaitEx(150, 25);
         Exit();
       end
