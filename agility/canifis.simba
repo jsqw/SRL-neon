@@ -8,7 +8,7 @@ begin
 end;
 
 var
-  Food: TRSItem := 'Trout';
+  Food: TRSItem := 'Bass';
   HpToEatAt: Int32 := 8;
   StartTileArray: TPointArray := [[180, 1036], [184, 1036], [188, 1036], [192, 1036], [196, 1036], [180, 1036], [184, 1036], [188, 1036], [192, 1036], [200, 1036],
                                   [180, 1040], [184, 1040], [188, 1040], [192, 1040], [196, 1040], [180, 1040], [184, 1040], [188, 1040], [192, 1040], [200, 1040]];
@@ -51,13 +51,13 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| ~ canifis hopper v0.02 ~ |");
-  WriteLn('| -------------------------|');
+  WriteLn("| ~  canifis hopper  v0.02 ~ |");
+  WriteLn('|----------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Agility exp    : ', GainedXP);
   WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
   WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
-  WriteLn('| -------------------------|');
+  WriteLn('| ---------------------------|');
 end;
 
 // A custom Keyboard version of Antiban.RandomRotate()
@@ -77,9 +77,8 @@ begin
   Keyboard.KeyUp(Arrow);
 end;
 
-// by Flight
 procedure TAntiban.DoLoseFocus();
-var T: Int32;
+Var T: Int32;
 begin
   T := SRL.NormalRange(800,3500);
   Self.DebugLn('Losing focus for '+SRL.MsToTime(T, Time_Short));
@@ -97,7 +96,7 @@ begin
   Antiban.AddTask(ONE_MINUTE*8,   @Antiban.HoverMSNPCs);
   Antiban.AddTask(ONE_MINUTE*25,  @Antiban.HoverSkills);
   Antiban.AddBreak(ONE_MINUTE * 5, ONE_SECOND*10, 0.2, 0);
-  Antiban.AddBreak(33 * ONE_MINUTE, 9 * ONE_MINUTE);
+  Antiban.AddBreak(40 * ONE_MINUTE, 8 * ONE_MINUTE);
   Antiban.AddBreak(10 * ONE_HOUR, 8 * ONE_HOUR);
   Antiban.OnStartBreak := @PauseTimer;
   Antiban.OnFinishBreak := @ResumeTimer;
