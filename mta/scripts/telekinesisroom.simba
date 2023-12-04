@@ -6,12 +6,12 @@ program telekinesisroom;
   // HERE YOU CAN EDIT WHICH ACCOUNT YOU WANT TO USE.
   // FIRST ACCOUNT IN credentials.simba MEANS Login.PlayerIndex := 0
 begin
-  Login.PlayerIndex := 0;
+  Login.PlayerIndex := 1;
 end;
 
 const
-  BREAKAFTER  = 37;
-  BREAKFOR    = 12;
+  BREAKAFTER  = 40;
+  BREAKFOR    = 5;
 
 var
   RSW: TRSWalker;
@@ -30,8 +30,7 @@ var
                             [283, 143], [297, 145], [298, 171],
                             [282, 171], [282, 184], [256, 185],
                             [256, 170], [241, 169]];
-  InfoArea: TBox := [465, 231, 508, 248];
-
+  InfoArea: TBox := [460, 228, 509, 268];
 
 procedure PauseTimer(Task: PBreakTask);
 var T: PBreakTask;
@@ -47,28 +46,47 @@ begin
   T := Task;
 end;
 
+// A custom Keyboard version of Antiban.RandomRotate()
+// Rotating with mouse3 doesn't work well with RuneLite
+procedure KeyboardRotate();
+var
+  Arrow: Integer;
+  Duration: Int64;
+begin
+  if SRL.Dice(50) then
+    Arrow := $25
+  else
+    Arrow := $27;
+  Duration := SRL.NormalRange(500, 1500);
+  Keyboard.KeyDown(Arrow);
+  Sleep(Duration);
+  Keyboard.KeyUp(Arrow);
+end;
+
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn('| MTA by n0ll v1.1            |');
-  WriteLn('| The Telekinetic Theatre     |');
-  WriteLn('| ----------------------------|');
+  WriteLn('| MTA v2.0              by n0ll |');
+  WriteLn('| The Telekinetic Theatre       |');
+  WriteLn('|-------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
-  WriteLn('| Magic exp      : ', GainedXP);
+  WriteLn('| Magic XP       : ', GainedXP);
+  WriteLn('| XP/Hour        : ', Round((GainedXP/((GetTimeRunning()/3600))), 2), ' K');
   WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
   WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
-  WriteLn('| ----------------------------|');
+  WriteLn('|-------------------------------|');
 end;
 
 procedure SetupAntiBan();
 begin
-  Antiban.Skills := [ERSSKILL.MAGIC];
+  Antiban.Skills := [ERSSKILL.MAGIC, ERSSKILL.TOTAL];
   Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.RandomRightClick);
   Antiban.AddTask(ONE_SECOND  * 45,  @Mouse.RandomMovement);
-  Antiban.AddTask(ONE_MINUTE  * 5,   @Antiban.RandomRotate);
+  Antiban.AddTask(ONE_MINUTE  * 5,   @KeyboardRotate);
   Antiban.AddTask(ONE_MINUTE  * 15,  @Antiban.HoverSkills);
   Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.LoseFocus);
   Antiban.AddBreak(BREAKAFTER * ONE_MINUTE, BREAKFOR * ONE_MINUTE);
+  Antiban.AddBreak(12 * ONE_HOUR, 4 * ONE_HOUR);
   Antiban.OnStartBreak := @PauseTimer;
   Antiban.OnFinishBreak := @ResumeTimer;
 end;
@@ -86,14 +104,13 @@ end;
 
 procedure InitiateScript();
 begin
-
   if (not FileExists(AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png')) then
     Downloader('https://i.imgur.com/yRapvnM.png', AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png');
 
   RSW.Setup('mta');
-  SRL.Setup();
   SetupAntiBan();
-  if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+  if not RSClient.IsLoggedIn() then
+    Login.LoginPlayer();
   WaitUntil(RSClient.IsLoggedIn(), 100, 10000);
   StartXP := XPBar.Read();
   Timer.Start();
@@ -106,114 +123,127 @@ begin
   CurrentXP := XPBar.Read();
   t         := GainedXP;
   GainedXP  := CurrentXP - StartXP;
-  if GainedXP > t then Timer.Reset();
-  if Timer.ElapsedTime > 300000 then TerminateScript('No Gained XP in 5 minutes!');
+  if (GainedXP > t) then
+    Timer.Reset();
+  if (Timer.ElapsedTime > 300000) then
+    TerminateScript('No Gained XP in 5 minutes!');
 end;
 
-function IsPlayerInGreenMarker(): Boolean;
+function InCorrectTile(): Boolean;
 var
   TPA: TPointArray;
-  Box: TBox;
+  OurPos, ArrowPos: TPoint;
 begin
-  Box := Mainscreen.GetPlayerBox();
-  SRL.FindColors(TPA, CTS0(2408482, 63), Box);
-  if (TPA.Len > 0) then Exit(True)
-  else Exit(False);
+  OurPos := Minimap.Center();
+  Minimap.WaitYellowArrow(TPA, 1000);
+  if (TPA.Len() > 1) then
+    begin
+      ArrowPos := [TPA.Last().X, TPA.Last().Y+2];
+      if (OurPos = ArrowPos) then
+        Exit(True)
+      else
+        Exit(False);
+    end
+  else
+    Exit(False);
 end;
 
 function GetState(): String;
 begin
   CalculateXP();
-  if SRL.CountColor(CTS0(16764006, 0), InfoArea) > 50 then Exit('INROOM');
-  if STATUEAREA.Bounds.Contains(RSW.GetMyPos()) then Exit('STATUEAREA');
-  if MTALOBBY.Bounds.Contains(RSW.GetMyPos()) then Exit('MTALOBBY');
+  if (SRL.CountColor(CTS0(16764006, 0), InfoArea) > 50) then
+    Exit('INROOM');
+  if (STATUEAREA.Bounds.Contains(RSW.GetMyPos())) then
+    Exit('STATUEAREA');
+  if (MTALOBBY.Bounds.Contains(RSW.GetMyPos())) then
+    Exit('MTALOBBY');
+
   Exit('UNKNOWN');
 end;
 
 procedure EnterRoom();
-var TPA: TPointArray;
+var
+  TeleportTile: TPoint := [268, 118];
+  Rect: TRectangle;
 begin
-  SRL.FindColors(TPA, CTS0(22111, 0), Mainscreen.Bounds());
-  if (TPA.Len > 0) then
-    begin
-      Mouse.HumanMove(TPA.Mean());
-      Wait(20, 120);
-      if (not Mainscreen.IsUpText('Enter Tele')) then Antiban.RandomRotate()
-      else
-        begin
-          Mouse.Click(MOUSE_LEFT);
-          Wait(3000, 5000);
-          Exit();
-        end;
-    end;
-  Antiban.RandomRotate();
+  Rect := RSW.GetTileMs(TeleportTile);
+  Mouse.HumanMove(Rect.Mean());
+  if Mainscreen.IsUpText('Telekinetic Teleport') then
+    Mouse.Click(MOUSE_LEFT)
+  else
+    KeyboardRotate();
+  WaitEx(1000, 250);
 end;
 
 procedure ExitRoom();
-var TPA: TPointArray;
+var
+  TPA: TPointArray;
+  // ExitColor is orange highlight
+  ExitColor: TCTS2Color := CTS2(548850, 2, 0.07, 5.44);
 begin
-  SRL.FindColors(TPA, CTS0(65530, 0), Mainscreen.Bounds());
-  if (not TPA.Len > 0) then Antiban.RandomRotate()
-  else
+  SRL.FindColors(TPA, ExitColor, Mainscreen.Bounds());
+  if (TPA.Len > 0) then
     begin
       Mouse.HumanMove(TPA.Mean());
-      Wait(25, 75);
-      if (Mainscreen.IsUpText('Exit')) then Mouse.Click(MOUSE_LEFT)
-      else Antiban.RandomRotate();
+      WaitEx(50, 25);
+      if MainScreen.IsUpText('Exit Teleport') then
+        begin
+          Mouse.Click(MOUSE_LEFT);
+          Wait(1000);
+          Exit();
+        end
     end;
-  Wait(1250, 2500);
+  KeyboardRotate();
   Antiban.DoAntiban();
 end;
 
 procedure TravelToArrow();
 var
-    TPA, MTPA  : TPointArray;
-    Pt         : TPoint;
-    Box        : TBox;
+  TPA, MTPA: TPointArray;
+  Pt: TPoint;
+  Box: TBox;
 begin
   WaitUntil(Minimap.FindArrow(TPA), 50, 4000);
-  if (TPA.Len < 1) then Exit;
+
+  if (TPA.Len() < 1) then
+    Exit();
+
   if (Mainscreen.FindArrow(MTPA)) then
     begin
       Box := Mainscreen.GetPlayerBox();
-      Box := Box.Expand(25);
-      Pt := SRL.rowp(Mouse.Position(), MTPA.Bounds);
+      Box := Box.Expand(30);
+      Pt := MTPA.Last();
       Pt.Y += 4;
       if Box.Contains(Pt) then
         begin
           Mouse.HumanMove(Pt);
           Wait(50, 100);
           Mouse.Click(MOUSE_LEFT);
-          Wait(775, 995);
-          Exit;
+          WaitUntil(InCorrectTile(), 500, 4000);
+          Exit();
         end;
     end;
-  Pt := [TPA.Mean.X+Random(-2, 2), TPA.Mean.Y+4+Random(-2, 2)];
+  Pt := [TPA.Mean.X+Random(-1, 1), TPA.Mean.Y+4+Random(-1, 1)];
   Mouse.HumanMove(Pt);
   Wait(50, 100);
   Mouse.Click(MOUSE_LEFT);
-  Wait(3775, 4995);
-end;
-
-function IsArrowVisible(): boolean;
-var TPA: TPointArray;
-begin
-  Result := Minimap.WaitArrow(TPA, 3000, 100);
+  WaitUntil(InCorrectTile(), 500, 4000);
 end;
 
 procedure HandleChat();
 begin
-  WaitUntil(Chat.ClickContinue(false), 50, 5000);
+  WaitUntil(Chat.ClickContinue(False), 50, 5000);
   Wait(300, 500);
-  WaitUntil(Chat.ClickOption('Yes please!', false), 50, 5000);
+  WaitUntil(Chat.ClickOption('Yes please!', False), 50, 5000);
   Wait(300, 500);
-  WaitUntil(Chat.ClickContinue(false), 50, 5000);
+  WaitUntil(Chat.ClickContinue(False), 50, 5000);
   PrintProgress();
 end;
 
 procedure WalkToStatues();
 begin
   RSW.WalkBlind(JoinTile);
+  WaitEx(1000, 250);
   Antiban.DoAntiban();
 end;
 
@@ -222,61 +252,76 @@ var
   TPA: TPointArray;
   Pt: TPoint;
 begin
-  if MainScreen.IsUpText('Cast Tele') then Mouse.Click(MOUSE_LEFT);
-  SRL.FindColors(TPA, CTS0(16133, 0), Mainscreen.Bounds());
-  if (not TPA.Len > 0) then Antiban.RandomRotate()
-  else
+  if MainScreen.IsUpText('Cast Tele') then
+    Mouse.Click(MOUSE_LEFT);
+
+  SRL.FindColors(TPA, CTS2(12001507, 5, 0.08, 5.52), Mainscreen.Bounds());
+  if (TPA.Len > 0) then
     begin
       Pt := TPA.Mean();
       Mouse.HumanMove(Pt);
+      WaitEx(50, 25);
       if Mainscreen.IsUpText('Talk-to') then
         begin
         Wait(50, 150);
         Mouse.Click(MOUSE_LEFT);
         Wait(100, 200);
-        if Chat.HasContinue() then HandleChat();
-        end
-      Exit;
+        if Chat.HasContinue() then
+          HandleChat();
+        end;
+      Exit();
     end
+  else
+    KeyboardRotate();
 end;
 
 procedure GrabGuardian();
-var TPA: TPointArray;
+var
+  TPA: TPointArray;
+  // color is bright pink
+  GuardianColor: TCTS2Color := CTS2(12001507, 5, 0.08, 5.52);
 begin
-  if (not IsPlayerInGreenMarker()) then Exit();
-  SRL.FindColors(TPA, CTS0(16133, 0), Mainscreen.Bounds());
-  if (not TPA.Len > 0) then Antiban.RandomRotate()
-  else
+  if (not InCorrectTile()) then
+    Exit();
+
+  SRL.FindColors(TPA, GuardianColor, Mainscreen.Bounds());
+
+  if (TPA.Len() > 0) then
     begin
       if (not Mainscreen.IsUpText('Cast Tele')) then
         Magic.CastSpell(ERSSpell.TELEKINETIC_GRAB);
       Mouse.HumanMove(TPA.Mean());
-      Wait(50, 150);
+      WaitEx(50, 25);
       if Mainscreen.IsUpText('Maze Guardian') then
         begin
           Mouse.Click(MOUSE_LEFT);
-          Wait(100, 125);
+          WaitEx(100, 50);
           if Mainscreen.IsUpText('Talk-to') then
-            begin
-              FinishRoom();
-              Exit();
-            end;
-          WaitUntil(not IsPlayerInGreenMarker, 100, 9000);
+          begin
+            FinishRoom();
+            Exit();
+          end;
+          WaitUntil((not InCorrectTile()), 100, 9000);
           Exit();
-        end
-      else Antiban.RandomRotate();
-    end;
+        end;
+    end
+  else
+    KeyboardRotate();
 end;
 
 procedure SolveRoom();
 begin
-  Antiban.DoAntiban(false, false);
-  if not IsArrowVisible() then ExitRoom()
+  Antiban.DoAntiban(False, False);
+  if (not Minimap.WaitArrow(1150)) then
+    ExitRoom()
   else
     begin
-      if Chat.HasContinue() then FinishRoom()
-      else if IsplayerInGreenMarker() then GrabGuardian()
-      else TravelToArrow();
+      if Chat.HasContinue() then
+        FinishRoom()
+      else if InCorrectTile() then
+        GrabGuardian()
+      else
+        TravelToArrow();
     end;
 end;
 
