@@ -60,13 +60,14 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| Ruins of Camdozaal Fisher v1.3 |");
-  WriteLn('| -------------------------------|');
+  WriteLn('| Ruins of Camdozaal Fisher v1.4   |');
+  WriteLn('|----------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
-  WriteLn('| Gained exp     : ', GainedXP);
+  WriteLn('| Gained XP      : ', GainedXP);
+  WriteLn('| XP/Hour        : ', Round((GainedXP/((GetTimeRunning()/3600))), 2), ' K');
   WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
   WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
-  WriteLn('| -------------------------------|');
+  WriteLn('|----------------------------------|');
 end;
 
 procedure SetupAntiBan();
@@ -76,10 +77,9 @@ begin
   Antiban.AddTask(ONE_SECOND  * 45,  @Mouse.RandomMovement);
   Antiban.AddTask(ONE_MINUTE  * 5,   @KeyboardRotate);
   Antiban.AddTask(ONE_MINUTE  * 15,  @Antiban.HoverSkills);
-    // We are using antiban to randomly check for updated stats
+  // We are using antiban to randomly check for updated stats
   Antiban.AddTask(ONE_MINUTE  * 5,   @UpdateCooking);
   Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.LoseFocus);
-  Antiban.AddBreak(ONE_MINUTE * 5, ONE_SECOND*10, 0.2, 0);
   Antiban.AddBreak(40 * ONE_MINUTE, 8 * ONE_MINUTE);
   Antiban.AddBreak(12 * ONE_HOUR, 4 * ONE_HOUR);
   Antiban.OnStartBreak := @PauseTimer;
@@ -95,12 +95,14 @@ procedure InitiateScript();
 begin
   RSW.Setup('world');
   SetupAntiBan();
-  if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+  if (not RSClient.IsLoggedIn()) then
+    Login.LoginPlayer();
   WaitUntil(RSClient.IsLoggedIn(), 100, 10000);
   StartXP := XPBar.Read();
   Timer.Start();
   UpdateCooking();
-  if BHandle then JunkFish += 'Barronite handle';
+  if BHandle then
+    JunkFish += 'Barronite handle';
 end;
 
 function IsFishing(): Boolean;
@@ -117,8 +119,10 @@ begin
   CurrentXP := XPBar.Read();
   t         := GainedXP;
   GainedXP  := CurrentXP - StartXP;
-  if GainedXP > t then Timer.Reset();
-  if Timer.ElapsedTime > 300000 then TerminateScript('No Gained XP in 5 minutes!');
+  if (GainedXP > t) then
+    Timer.Reset();
+  if (Timer.ElapsedTime > 300000) then
+    TerminateScript('No Gained XP in 5 minutes!');
 end;
 
 function GetTypeCount(Items: TRSItemArray): Int32;
@@ -146,7 +150,7 @@ begin
   Finder.ClusterDistance := 4;
 
   ATPA := MainScreen.FindObject(Finder);
-  if ATPA.Len < 1 then
+  if (ATPA.Len < 1) then
     begin
       RSW.WalkBlind([1086, 3970]);
       Exit();
@@ -157,7 +161,7 @@ begin
   STPA.Sort([Mainscreen.GetPlayerBox.Middle.X, Mainscreen.GetPlayerBox.Y2]);
   Mouse.HumanMove(STPA[0]);
   if Mainscreen.IsUpText('Fish') then
-  Mouse.Click(MOUSE_LEFT);
+    Mouse.Click(MOUSE_LEFT);
   Wait(2000, 4000);
 end;
 
@@ -187,7 +191,7 @@ var
   Handle: TRSBankItem := ['Barronite handle', Bank.QUANTITY_ALL, False];
 
 begin
-  if RSW.GetMyPos.DistanceTo(BankTile) > 36 then
+  if ((RSW.GetMyPos.DistanceTo(BankTile)) > 36) then
     RSW.WalkPath(Path);
 
   Rect := RSW.GetTileMs(BankTile);
@@ -217,7 +221,7 @@ var
   Rect: TRectangle;
   Count: Int32;
 begin
-  if not InKitchen then
+  if (not InKitchen()) then
     RSW.WalkBlind([1098, 3978]);
 
   DropUncookable();
@@ -235,7 +239,8 @@ begin
       Make.Select(0, Make.QUANTITY_ALL, True);
       WaitUntil(Count > GetTypeCount(RawFish), 1000, 40000);
     end
-  else KeyboardRotate();
+  else
+    KeyboardRotate();
 end;
 
 procedure DropJunk();
@@ -249,8 +254,8 @@ var
   Count: Int32;
   Rect: TRectangle;
 begin
-  if not InKitchen then
-  RSW.WalkBlind([1098, 3978]);
+  if (not InKitchen) then
+    RSW.WalkBlind([1098, 3978]);
 
   Rect := RSW.GetTileMS(AltarLocation);
   Rect := Rect.Expand(4);
@@ -267,7 +272,8 @@ begin
       CalculateXP();
       PrintProgress();
     end
-  else KeyboardRotate();
+  else
+    KeyboardRotate();
 end;
 
 function GetState(): String;
@@ -276,39 +282,41 @@ var
   HasCooked: Boolean := False;
   InvFull: Boolean := False;
 begin
-  if IsFishing then Exit('FISHING');
+  if (IsFishing()) then
+    Exit('FISHING');
 
-  if RSClient.IsLoggedIn() then CalculateXP();
+  if (RSClient.IsLoggedIn()) then
+    CalculateXP();
 
-  if Inventory.ContainsAny(RawFish) then
-  HasRaw := True;
+  if (Inventory.ContainsAny(RawFish)) then
+    HasRaw := True;
 
-  if Inventory.IsFull() then
-  InvFull := True;
+  if (Inventory.IsFull()) then
+    InvFull := True;
 
-  if Inventory.ContainsAny(CookedFish) then
-  HasCooked := True;
+  if (Inventory.ContainsAny(CookedFish)) then
+    HasCooked := True;
 
   if (Inventory.CountItem('Barronite handle') > 10) then
-  Exit('BANK_HANDLES');
+    Exit('BANK_HANDLES');
 
-  if HasRaw and HasCooked then
-  Exit('COOK_FISH');
+  if (HasRaw and HasCooked) then
+    Exit('COOK_FISH');
 
-  if (not InvFull) and HasRaw then
-  Exit('START_FISH');
+  if ((not InvFull) and HasRaw) then
+    Exit('START_FISH');
 
-  if InvFull and HasRaw then
-  Exit('COOK_FISH');
+  if (InvFull and HasRaw) then
+    Exit('COOK_FISH');
 
-  if Inventory.ContainsAny(JunkFish) then
-  Exit('DROP_JUNK');
+  if (Inventory.ContainsAny(JunkFish)) then
+    Exit('DROP_JUNK');
 
-  if HasCooked and (not HasRaw) then
-  Exit('OFFER_FISH');
+  if (HasCooked and (not HasRaw)) then
+    Exit('OFFER_FISH');
 
-  if not InvFull then
-  Exit('START_FISH');
+  if (not InvFull) then
+    Exit('START_FISH');
 
   Exit('UNKNOWN_STATE');
 end;
@@ -318,7 +326,8 @@ begin
   repeat
     begin
       Antiban.DoAntiban();
-      if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+      if not RSClient.IsLoggedIn() then
+        Login.LoginPlayer();
       State := GetState();
       case State of
         'FISHING': Wait(2000);
@@ -329,7 +338,7 @@ begin
         'BANK_HANDLES': BankHandles();
         'UNKNOWN_STATE': WriteLn('UNKNOWN STATE!');
       end;
-      Wait(1000);
+      Wait(500);
     end;
   until false;
 end.
