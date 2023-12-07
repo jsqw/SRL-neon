@@ -34,6 +34,10 @@ The creature graveyard script banks with rings of dueling and returns to the min
 
 ## Instructions for specific rooms:
 
+### Note:
+
+Use new.properties for telekinesis and enchant rooms
+
 ### Creature Graveyard:
 
 - Ring of elements equipped with a lot of charges
