@@ -3,8 +3,6 @@ program telekinesisroom;
 {$I WaspLib/osr.simba}
 {$DEFINE FORMS_V2}
 
-  // HERE YOU CAN EDIT WHICH ACCOUNT YOU WANT TO USE.
-  // FIRST ACCOUNT IN credentials.simba MEANS Login.PlayerIndex := 0
 begin
   Login.PlayerIndex := 1;
 end;

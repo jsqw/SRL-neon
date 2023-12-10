@@ -5,41 +5,30 @@ program graveyardroom;
 
 begin
   Login.PlayerIndex := 0;
+  Mouse.Speed := SRL.NormalRange(15, 25);
 end;
 
 const
   BREAKAFTER  = 40;
-  BREAKFOR    = 7;
+  BREAKFOR    = 5;
 
 var
-  FOOD         : TRSItem      := 'Shark';
-  RSW          : TRSWalker;
-  State        : String;
-  FL, HP       : Int32;
-  FRUITININVY  : Boolean;
-  RINGS        : TRSItemArray := ['Ring of dueling(1)', 'Ring of dueling(2)',
-                                  'Ring of dueling(3)', 'Ring of dueling(4)',
-                                  'Ring of dueling(5)', 'Ring of dueling(6)',
-                                  'Ring of dueling(7)', 'Ring of dueling(8)'];
-  R8           : TRSBankItem := ['Ring of dueling(8)', 1, false];
-  FW           : TRSBankItem := [FOOD, 2, false];
-  JoinTile     : TPoint      := [268, 110];
-  PoolTile     : TPoint      := [668, 144];
-  CGROOM       : TPointArray := [[696, 391], [952, 390], [952, 650], [692, 648]];
-  DUELARENA    : TPointArray := [[47, 73], [335, 73], [340, 339], [49, 343]];
-  FEROX        : TPointArray := [[625, 119], [765, 100], [760, 200], [621, 229]];
-  STATUEAREA   : TPointArray := [[258, 86], [280, 86], [291, 96], [290, 116], [278, 129], [279, 141], [261, 141], [261, 129], [250, 118], [250, 96]];
-  MTALOBBY     : TPointArray := [[241, 159], [241, 145], [251, 145], [260, 141], [268, 141], [275, 141], [283, 143], [297, 145], [298, 171], [282, 171], [282, 184], [256, 185], [256, 170], [241, 169]];
-  MTAYARD      : TPointArray := [[255, 188], [285, 188], [286, 217], [255, 216]];
-  POOLAREA     : TPointArray := [[636, 133], [679, 134], [680, 170], [637, 169]];
-  FIREALTAR    : TPointArray := [[49, 227], [109, 227], [109, 287], [49, 287]];
-  FEROXTELE    : TPointArray := [[730, 136], [749, 137], [748, 155], [731, 155]];
-  Timer        : TStopwatch;
-  StartXP      : Int32;
-  CurrentXP    : Int32;
-  GainedXP     : Int32 := 0;
-  FRUIT        : TRSItem      := 'Banana';
-
+  PEACHES_UNLOCKED: Boolean := False;
+  HPToEatAt: Int32 := 60;
+  RSW: TRSWalker;
+  State: String;
+  Timer: TStopwatch;
+  StartXP: Int32;
+  CurrentXP: Int32;
+  GainedXP: Int32 := 0;
+  CGROOM: TPointArray := [[696, 391], [952, 390], [952, 650], [692, 648]];
+  STATUEAREA: TPointArray := [[258, 86], [280, 86], [291, 96], [290, 116],
+                                 [278, 129], [279, 141], [261, 141], [261, 129],
+                                 [250, 118], [250, 96]];
+  MTALOBBY: TPointArray := [[241, 159], [241, 145], [251, 145], [260, 141],
+                                 [268, 141], [275, 141], [283, 143], [297, 145],
+                                 [298, 171], [282, 171], [282, 184], [256, 185],
+                                 [256, 170], [241, 169]];
 
 procedure PauseTimer(Task: PBreakTask);
 var T: PBreakTask;
@@ -58,14 +47,32 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn('| MTA by n0ll v1.1            |');
-  WriteLn('| The Creature Graveyard      |');
-  WriteLn('| ----------------------------|');
+  WriteLn('| MTA v2.0              by n0ll |');
+  WriteLn('| The Creature Graveyard        |');
+  WriteLn('|-------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
-  WriteLn('| Magic exp      : ', GainedXP);
+  WriteLn('| Magic XP       : ', GainedXP);
+  WriteLn('| XP/Hour        : ', Round((GainedXP/((GetTimeRunning()/3600))), 2), ' K');
   WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
   WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
-  WriteLn('| ----------------------------|');
+  WriteLn('|-------------------------------|');
+end;
+
+// A custom Keyboard version of Antiban.RandomRotate()
+// Rotating with mouse3 doesn't work well with RuneLite
+procedure KeyboardRotate();
+var
+  Arrow: Integer;
+  Duration: Int64;
+begin
+  if SRL.Dice(50) then
+    Arrow := $25
+  else
+    Arrow := $27;
+  Duration := SRL.NormalRange(500, 1500);
+  Keyboard.KeyDown(Arrow);
+  Sleep(Duration);
+  Keyboard.KeyUp(Arrow);
 end;
 
 procedure SetupAntiBan();
@@ -73,9 +80,11 @@ begin
   Antiban.Skills := [ERSSKILL.MAGIC, ERSSKILL.TOTAL];
   Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.RandomRightClick);
   Antiban.AddTask(ONE_SECOND  * 45,  @Mouse.RandomMovement);
-  Antiban.AddTask(ONE_MINUTE  * 5,   @Antiban.RandomRotate);
+  Antiban.AddTask(ONE_MINUTE  * 5,   @KeyboardRotate);
   Antiban.AddTask(ONE_MINUTE  * 15,  @Antiban.HoverSkills);
+  Antiban.AddTask(ONE_MINUTE  * 4,   @Antiban.LoseFocus);
   Antiban.AddBreak(BREAKAFTER * ONE_MINUTE, BREAKFOR * ONE_MINUTE);
+  Antiban.AddBreak(12 * ONE_HOUR, 4 * ONE_HOUR);
   Antiban.OnStartBreak := @PauseTimer;
   Antiban.OnFinishBreak := @ResumeTimer;
 end;
@@ -93,104 +102,16 @@ end;
 
 procedure InitiateScript();
 begin
-
   if (not FileExists(AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png')) then
     Downloader('https://i.imgur.com/yRapvnM.png', AppPath+'\Includes\WaspLib\osr\walker\maps\mta.png');
 
   RSW.Setup('mta');
-  SRL.Setup();
   SetupAntiBan();
-  if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+  if not RSClient.IsLoggedIn() then
+    Login.LoginPlayer();
   WaitUntil(RSClient.IsLoggedIn(), 100, 10000);
   StartXP := XPBar.Read();
   Timer.Start();
-end;
-
-
-function SuppliesReady(): boolean;
-begin
-  if(Inventory.ContainsAny(RINGS) and Inventory.ContainsItem(FOOD)) then
-    Exit(true)
-  else
-    Exit(false);
-end;
-
-procedure TeleportToFireAltar();
-begin
-  PrintProgress();
-  Equipment.ClickItem('Ring of the elements', 'Fire Altar');
-  Antiban.DoAntiban();
-  WaitUntil(FIREALTAR.Bounds().Contains(RSW.GetMyPos()), 100, 10000);
-end;
-
-procedure UseRestorationPool();
-var
-  TPA  : TPointArray;
-  Pt   : TPoint;
-  Area : TRectangle;
-  Box  : TBox;
-begin
-  Area := RSW.GetTileMS([648, 148]);
-  Area := Area.Expand(12);
-  Box := Area.Bounds();
-  Box.LimitTo(Mainscreen.Bounds());
-  SRL.FindColors(TPA, CTS0(11644782, 20), Box);
-  if (TPA.Len > 0) then
-    begin
-      Pt := SRL.rowp(Mouse.Position(), TPA.Bounds());
-      Mouse.HumanMove(Pt);
-      Wait(20, 120);
-      if (not Mainscreen.IsUpText('Drink')) then Antiban.RandomRotate()
-      else
-        begin
-          Mouse.Click(MOUSE_LEFT);
-          WaitUntil((Minimap.GetHPPercent = 100), 500, 20000);
-        end;
-    end;
-end;
-
-procedure OpenBank();
-var TPA: TPointArray;
-begin
-  SRL.FindColors(TPA, CTS0(16745203, 0), Mainscreen.Bounds());
-  if (TPA.Len < 1) then Exit;
-  Mouse.HumanMove(TPA.Mean());
-  Wait(25, 75);
-  if MainScreen.IsUpText('Use Bank') then Mouse.Click(MOUSE_LEFT);
-  WaitUntil(Mainscreen.HasInterface(), 50, 5000);
-  Wait(1000, 2000);
-end;
-
-procedure GetItemsFromBank();
-begin
-  if (not Mainscreen.HasInterface()) then OpenBank();
-  WaitUntil(Mainscreen.HasInterface(), 50, 5000);
-  if (not Mainscreen.HasInterface()) then Exit;
-  if (not Inventory.ContainsAny(RINGS)) then Bank.WithDrawItem(R8, false);
-  Wait(100, 200);
-  if (not Inventory.ContainsItem(FOOD)) then
-    begin
-      if Bank.ContainsItem(FOOD) then Bank.WithdrawItem(FW, false)
-      else TerminateScript('Out of food!');
-    end;
-  Wait(100, 200);
-  Bank.Close(True);
-  Wait(2000, 3000);
-end;
-
-procedure EnterMTADoor();
-var TPA: TPointArray;
-begin
-  SRL.FindColors(TPA, CTS0(255, 0), Mainscreen.Bounds());
-  if (not TPA.Len > 0) then Antiban.RandomRotate()
-  else
-    begin
-      Mouse.HumanMove(TPA.Mean());
-      Wait(25, 75);
-      if (Mainscreen.IsUpText('Enter')) then Mouse.Click(MOUSE_LEFT)
-      else Antiban.RandomRotate();
-    end;
-  Wait(2750, 3250);
 end;
 
 procedure CalculateXP();
@@ -199,190 +120,155 @@ begin
   CurrentXP := XPBar.Read();
   t         := GainedXP;
   GainedXP  := CurrentXP - StartXP;
-  if GainedXP > t then Timer.Reset();
-  if Timer.ElapsedTime > 300000 then TerminateScript('No Gained XP in 5 minutes!');
-end;
-
-procedure TravelToYard();
-begin
-  RSW.WalkBlind([268, 202]);
-  Antiban.DoAntiban();
-end;
-
-procedure TravelToPool();
-begin
-  RSW.WalkBlind(PoolTile);
-  Antiban.DoAntiban();
-end;
-
-procedure TravelToJoinTile();
-begin
-  RSW.WalkBlind(JoinTile);
-  Antiban.DoAntiban();
-end;
-
-procedure RestoreAndBank();
-begin
-  if (not SuppliesReady()) then
-    begin
-      GetItemsFromBank();
-      Exit();
-    end;
-  UseRestorationPool();
-  Wait(100,200);
-  TeleportToFireAltar();
-  WaitUntil(FIREALTAR.Bounds().Contains(RSW.GetMyPos()), 500, 10000);
-end;
-
-procedure SetCompassWest();
-var Pt: TPoint;
-begin
-  Pt := Minimap.GetCompassCircle().Mean();
-  Pt := [Pt.X+Random(-2, 2), Pt.Y+Random(-2, 2)];
-  Mouse.HumanMove(Pt);
-  WaitEx(100, 20);
-  Mouse.Click(MOUSE_RIGHT);
-  ChooseOption.Select('Look West');
+  if (GainedXP > t) then
+    Timer.Reset();
+  if (Timer.ElapsedTime > 300000) then
+    TerminateScript('No Gained XP in 5 minutes!');
 end;
 
 procedure ClickBonePile();
-var TPA: TPointArray;
+var
+  BoneColor: TCTS2Color := CTS2(1728211, 4, 0.04, 5.89);
+  BoneTile: TPoint := [770, 528];
+  Slots: Int32;
+  Pt: TPoint;
+  TPA: TPointArray;
+  PBox, Bds: TBox;
+  Rect: TRectangle;
 begin
-  if MainScreen.IsUpText('Grab') then
-    Mouse.Click(MOUSE_LEFT)
-  else
+  if Mainscreen.IsUpText('Cast') then
+    Mouse.Click(MOUSE_LEFT);
+
+  PBox := Mainscreen.GetPlayerBox().Expand(12);
+  Rect := RSW.GetTileMs(BoneTile);
+  Rect := Rect.Expand(12);
+  Bds := Rect.Bounds();
+  Bds.LimitTo(Mainscreen.Bounds());
+  SRL.FindColors(TPA, BoneColor, Bds);
+
+  if (TPA.Len() > 0) then
     begin
-      SRL.FindColors(TPA, CTS0(16133, 0) , Mainscreen.Bounds());
-      if (TPA.Len > 0) then
+      Pt := TPA.Mean();
+      if (Mainscreen.IsUpText('Grab') and (Pbox.Contains(Pt))) then
         begin
-          Mouse.HumanMove(TPA.Mean());
-          Wait(25, 75);
-          if MainScreen.IsUpText('Grab') then Mouse.Click(MOUSE_LEFT);
-        end
-      else SetCompassWest();
-    end;
+          Mouse.Click(MOUSE_LEFT);
+          Exit();
+        end;
+      Mouse.HumanMove(Pt);
+      WaitEx(50, 25);
+      if Mainscreen.IsUpText('Grab') then
+        begin
+          Pt := Mouse.Position();
+          Mouse.Click(MOUSE_LEFT);
+          PBox := Mainscreen.GetPlayerBox();
+          PBox := PBox.Expand(15);
+          Slots := Inventory.CountEmptySlots();
+          if (not PBox.Contains(Pt)) then
+            WaitUntil((Slots > Inventory.CountEmptySlots()), 250, 5000);
+        end;
+    end
+  else
+    KeyboardRotate();
+end;
+
+procedure EnterRoom();
+var Rect: TRectangle;
+begin
+  Rect := RSW.GetTileMS([280, 106]);
+  Mouse.HumanMove(Rect.Mean());
+  WaitEx(50, 25);
+  if Mainscreen.IsUpText('Enter Grave') then
+    Mouse.Click(MOUSE_LEFT);
+  WaitEx(2500, 500);
 end;
 
 procedure DepositFruit();
-var TPA: TPointArray;
+var
+  DepositTile: TPoint := [780, 522];
+  DepositColor: TCTS2Color := CTS2(65535, 1, 0.01, 0.01);
+  TPA: TPointArray;
+  Bds: TBox;
+  Rect: TRectangle;
 begin
   PrintProgress();
-  SRL.FindColors(TPA, CTS0(16745203, 0) , Mainscreen.Bounds());
 
-  if (TPA.Len < 1) then
-    Exit();
+  if Mainscreen.IsUpText('Cast') then
+    Mouse.Click(MOUSE_LEFT);
 
-  Mouse.HumanMove(TPA.Mean());
-  Wait(25, 75);
-  if MainScreen.IsUpText('Deposit') then
+  Rect := RSW.GetTileMs(DepositTile);
+  Rect := Rect.Expand(12);
+  Bds := Rect.Bounds();
+  Bds.LimitTo(Mainscreen.Bounds());
+  SRL.FindColors(TPA, DepositColor, Bds);
+  if (TPA.Len() > 0) then
     begin
-      Mouse.Click(MOUSE_LEFT);
-      XPBar.WaitXP(2000);
+      Mouse.HumanMove(TPA.Mean());
+      WaitEx(50, 25);
+      if MainScreen.IsUpText('Deposit') then
+        begin
+          Mouse.Click(MOUSE_LEFT);
+          XPBar.WaitXP(2000);
+          Antiban.DoAntiban();
+          WaitEx(250, 50);
+        end;
     end
   else
-    SetCompassWest();
+    KeyboardRotate();
 end;
 
 function GetState(): string;
 var Pos: TPoint;
 begin
-  Antiban.DoAntiban(false, false);
-  Pos := RSW.GetMyPos();
-  HP  := Minimap.GetHPLevel();
-  FL  := Inventory.CountItem(FOOD);
-  FRUITININVY := Inventory.ContainsItem(FRUIT);
+  Antiban.DoAntiban(False, False);
   CalculateXP();
-  if POOLAREA.Bounds.Contains(Pos) then Exit('POOLAREA');
-  if CGROOM.Bounds.Contains(Pos) then Exit('CGROOM');
-  if MTALOBBY.Bounds.Contains(Pos) then Exit('MTALOBBY');
-  if MTAYARD.Bounds.Contains(Pos) then Exit('MTAYARD');
-  if FEROXTELE.Bounds.Contains(Pos) then Exit('FEROXTELE');
-  if FEROX.Bounds.Contains(Pos) then Exit('FEROX');
-  if STATUEAREA.Bounds.Contains(Pos) then Exit('STATUEAREA');
-  if FIREALTAR.BOUNDS.Contains(Pos) then Exit('FIREALTAR');
-  if DUELARENA.Bounds.Contains(Pos) then Exit('DUELARENA');
+  Pos := RSW.GetMyPos();
+
+  if (MTALOBBY.Bounds().Contains(Pos)) then
+    Exit('MTALOBBY');
+  if (STATUEAREA.Bounds().Contains(Pos)) then
+    Exit('STATUEAREA');
+  if (CGROOM.Bounds().Contains(Pos)) then
+    Exit('CGROOM');
+
   Exit('UNKNOWN');
 end;
 
-procedure TeleportToFerox();
-begin
-  Inventory.ClickSlot(0);
-  WaitUntil(Chat.ClickOption('Ferox', false), 50, 3000);
-  WaitUntil(FEROX.Bounds.Contains(RSW.GetMyPos()), 500, 20000);
-  Antiban.DoAntiban();
-end;
-
-procedure ClickGuardian();
-var TPA: TPointArray;
-begin
-  SRL.FindColors(TPA, CTS0(10157824, 0), Mainscreen.Bounds());
-  if (TPA.Len > 0) then
-    begin
-      Mouse.HumanMove(TPA.Mean());
-      Wait(20, 120);
-      if (not Mainscreen.IsUpText('Enter Grave')) then Antiban.RandomRotate()
-      else
-        begin
-          Mouse.Click(MOUSE_LEFT);
-          WaitUntil(CGROOM.Bounds.Contains(RSW.GetMyPos()), 200, 20000);
-        end;
-    end;
-end;
-
-procedure WalkFromAltar();
-var Path: TPointArray := [[103, 255], [128, 252], [162, 247], [201, 249], [225, 244], [263, 239], [265, 220], [269, 194], [268, 222]];
-begin
-  RSW.WalkPath(Path);
-  Wait(1000, 2000);
-  Antiban.DoAntiban();
-end;
-
-procedure WalkThroughFerox();
-var Path: TPointArray := [[737, 163], [717, 168], [689, 168], [677, 168], [671, 156]];
-begin
-  RSW.WalkPath(Path);
-  Wait(1000, 2000);
-end;
-
-procedure EnterRoom();
-begin
-  Antiban.DoAntiban();
-  if (not SuppliesReady()) then TeleportToFerox()
-  else ClickGuardian();
-end;
-
-procedure ExitRoom();
-var TPA: TPointArray;
-begin
-  SRL.FindColors(TPA, CTS0(65530, 0), Mainscreen.Bounds());
-  if (not TPA.Len > 0) then Antiban.RandomRotate()
-  else
-    begin
-      Mouse.HumanMove(TPA.Mean());
-      Wait(25, 75);
-      if (Mainscreen.IsUpText('Exit')) then Mouse.Click(MOUSE_LEFT)
-      else Antiban.RandomRotate();
-    end;
-  Wait(125, 250);
-end;
-
-function HaveEnoughBones(): boolean;
+function HaveEnoughBones(): Boolean;
 var InfoArea: TBox := [7, 300, 40, 331];
 begin
-  if (SRL.CountColor(CTS0(65280, 0), InfoArea) > 25) then Exit(true)
-  else Exit(false);
+  if (SRL.CountColor(CTS0(65280, 0), InfoArea) > 25) then
+    Exit(True)
+  else
+    Exit(False);
+end;
+
+procedure WalkToTeleport();
+begin
+  Antiban.DoAntiban();
+  RSW.WalkBlind([272, 106]);
+  WaitEx(250, 50);
+end;
+
+procedure ConvertBones();
+var
+  HP: Int32;
+begin
+  HP := Minimap.GetHPLevel();
+  if (PEACHES_UNLOCKED and (HP < HPToEatAt)) then
+    begin
+      Magic.CastSpell(ERSSpell.BONES_TO_PEACHES);
+      Inventory.ClickItem('Peach');
+    end
+  else
+    Magic.CastSpell(ERSSpell.BONES_TO_BANANAS);
 end;
 
 procedure SolveRoom();
 begin
-  if FRUITININVY then
+  if Inventory.ContainsAny(['Banana', 'Peach']) then
     DepositFruit()
-  else if ((HP < 12) and (FL < 1)) then
-    ExitRoom()
-  else if ((HP < 12) and (FL > 0)) then
-    Inventory.ClickItem(FOOD)
-  else if HaveEnoughBones then
-    Magic.CastSpell(ERSSpell.BONES_TO_BANANAS)
+  else if HaveEnoughBones() then
+    ConvertBones()
   else
     ClickBonePile();
 end;
@@ -391,21 +277,16 @@ begin
   InitiateScript();
   repeat
     begin
-    if not RSClient.IsLoggedIn() then Login.LoginPlayer();
-    State := GetState();
-    case State of
-      'CGROOM'     : SolveRoom();
-      'DUELARENA'  : TravelToYard();
-      'FEROX'      : TravelToPool();
-      'STATUEAREA' : EnterRoom();
-      'MTALOBBY'   : TravelToJoinTile();
-      'MTAYARD'    : EnterMTADoor();
-      'POOLAREA'   : RestoreAndBank();
-      'FIREALTAR'  : WalkFromAltar();
-      'FEROXTELE'  : WalkThroughFerox();
-      'UNKNOWN'    : ExitRoom();
-    end;
-    Wait(125, 775);
+      if (not RSClient.IsLoggedIn()) then
+        Login.LoginPlayer();
+      State := GetState();
+      case State of
+        'CGROOM'     : SolveRoom();
+        'STATUEAREA' : EnterRoom();
+        'MTALOBBY'   : WalkToTeleport();
+        'UNKNOWN'    : Logout.ClickLogout();
+      end;
+      WaitEx(50, 25);
     end;
   until false;
 end.

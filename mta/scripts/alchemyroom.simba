@@ -3,10 +3,9 @@ program alchemyroom;
 {$I WaspLib/osr.simba}
 {$DEFINE FORMS_V2}
 
-  // HERE YOU CAN EDIT WHICH ACCOUNT YOU WANT TO USE.
-  // FIRST ACCOUNT IN credentials.simba MEANS Login.PlayerIndex := 0
 begin
-  Login.PlayerIndex := 1;
+  Login.PlayerIndex := 0;
+  Mouse.Speed := SRL.NormalRange(19, 26);
 end;
 
 const
