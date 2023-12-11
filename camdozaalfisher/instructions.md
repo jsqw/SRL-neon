@@ -6,15 +6,13 @@ Fishes, prepares and offers fish at the Ruins of Camdozaal. Works in F2P and P2P
 - Obtaining barronite shards
 - Obtaining barronite maul handle
 
-Requires RuneLite, import and load cf.properties.
-Tested with SRL-T v2.6.7 and WaspLib v14.8.1.
-
 ```
-| Ruins of Camdozaal Fisher v1.0 |
-| -------------------------------|
-| Time running   : 03m 23s
-| Gained exp     : 1257
-| Failsafe timer : 05m 00s
-| Next break     : 00:01:51
-| -------------------------------|
+| Ruins of Camdozaal Fisher v1.5   |
+|----------------------------------|
+| Time running   : 28m 41s
+| Gained XP      : 3990
+| XP/Hour        : 8.35 K
+| Failsafe timer : 04m 58s
+| Next break     : 00:02:59
+|----------------------------------|
 ```

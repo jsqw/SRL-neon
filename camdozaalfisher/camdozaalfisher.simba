@@ -60,7 +60,7 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn('| Ruins of Camdozaal Fisher v1.4   |');
+  WriteLn('| Ruins of Camdozaal Fisher v1.5   |');
   WriteLn('|----------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Gained XP      : ', GainedXP);
@@ -126,12 +126,11 @@ begin
 end;
 
 function GetTypeCount(Items: TRSItemArray): Int32;
-var
-  i: Int32;
+var i: Int32;
 begin
   for i := 0 to High(Items) do
     if Inventory.ContainsItem(Items[i]) then
-    Result := Result+1;
+      Result := Result+1;
 end;
 
 procedure ClickFishSpot();
@@ -158,16 +157,19 @@ begin
 
   for TPA in ATPA do
     STPA += TPA.Mean();
+
   STPA.Sort([Mainscreen.GetPlayerBox.Middle.X, Mainscreen.GetPlayerBox.Y2]);
   Mouse.HumanMove(STPA[0]);
+
   if Mainscreen.IsUpText('Fish') then
     Mouse.Click(MOUSE_LEFT);
-  Wait(2000, 4000);
+
+  WaitUntil(IsFishing(), 500, 6000);
 end;
 
 procedure DropUncookable();
 begin
-  if CookingLvl > 46 then
+  if (CookingLvl > 46) then
     Exit();
 
   if ((CookingLvl < 46) and Inventory.ContainsItem('Raw catfish')) then
@@ -209,10 +211,7 @@ begin
       RSW.WalkPath(ReversePath);
     end
   else
-    begin
-      KeyboardRotate();
-      Exit();
-    end;
+    KeyboardRotate();
 end;
 
 procedure CookFish();
@@ -326,7 +325,7 @@ begin
   repeat
     begin
       Antiban.DoAntiban();
-      if not RSClient.IsLoggedIn() then
+      if (not RSClient.IsLoggedIn()) then
         Login.LoginPlayer();
       State := GetState();
       case State of
