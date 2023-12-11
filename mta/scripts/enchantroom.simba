@@ -4,7 +4,7 @@ program enchantroom;
 {$DEFINE FORMS_V2}
 
 begin
-  Login.PlayerIndex := 1;
+  Login.PlayerIndex := 0;
 end;
 
 const
@@ -13,7 +13,7 @@ const
 
   // HERE YOU CAN EDIT THE SPELL YOU WANT TO USE.
   // EXAMPLE: SAPPHIRE ENCHANT IS ERSSPell.LVL1_ENCHANT
-  ENCHANTSPELL: ERSSPell := ERSSpell.LVL4_ENCHANT;
+  ENCHANTSPELL: ERSSPell := ERSSpell.LVL5_ENCHANT;
 
 var
   RSW: TRSWalker;
@@ -187,12 +187,10 @@ begin
   Rect := RSW.GetTileMS(CubeTile);
   Bds := Rect.Bounds();
   Bds.LimitTo(Mainscreen.Bounds());
-  RSClient.Image.DrawBox(Bds, clBlue);
-
   SRL.FindColors(TPA, Color, Bds);
+
   if (TPA.Len > 0) then
     begin
-      RSClient.Image.DrawTPA(TPA, clRed);
       Mouse.HumanMove(TPA.Mean());
       WaitEx(50, 25);
       if Mainscreen.IsUpText('Take-from') then
@@ -210,19 +208,20 @@ var
   Rect: TRectangle;
   DepositHoleTile: TPoint := [128, 636];
 begin
-  if Mainscreen.IsUpText('Cast') then 
+  if Mainscreen.IsUpText('Cast') then
     Mouse.Click(MOUSE_LEFT);
 
-  RSClient.Image.Clear();
   PrintProgress();
   Pos := RSW.GetMyPos();
+
   if (Pos.DistanceTo(DepositHoleTile) > 16) then
     RSW.WalkBlind([132, 628]);
+
   WaitEx(550, 50);
   Rect := RSW.GetTileMs(DepositHoleTile);
-  RSClient.Image.DrawRect(Rect, clRed);
   Mouse.HumanMove(Rect.Mean());
   WaitEx(50, 25);
+
   if Mainscreen.IsUpText('Deposit') then
     begin
       Mouse.Click(MOUSE_LEFT);
@@ -244,10 +243,12 @@ begin
         begin
           Magic.CastSpell(ENCHANTSPELL);
           WaitEx(50, 25);
-          Inventory.MouseItem(CUBE);
+          if (not Inventory.ContainsItem(CUBE)) then
+            break;
+          Inventory.MouseSlot(allSlots.Max());
           WaitEx(50, 25);
           Mouse.Click(MOUSE_LEFT);
-          Wait(1200);
+          WaitEx(1337, 50);
         end;
     end
   else

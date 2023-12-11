@@ -226,6 +226,7 @@ begin
   Wait(50, 100);
   Mouse.Click(MOUSE_LEFT);
   WaitUntil(InCorrectTile(), 500, 4000);
+  WaitEx(250, 50);
 end;
 
 procedure HandleChat();
