@@ -51,7 +51,6 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| Pollnivneach Rooftop Agility v1.0 |");
   WriteLn('|-----------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Agility XP     : ', GainedXP);

@@ -49,13 +49,23 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| ~    draynor hopper v1.00    ~ |");
   WriteLn('|--------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Agility exp    : ', GainedXP);
   WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
   WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
   WriteLn('|--------------------------------|');
+end;
+
+procedure HealthManagement();
+begin
+  if (Minimap.GetHPLevel() < HpToEatAt) then
+    begin
+      if Inventory.ContainsItem(Food) then
+        Inventory.ClickItem(Food)
+      else
+        TerminateScript('Could not eat food, possible out of it?');
+    end;
 end;
 
 // A custom Keyboard version of Antiban.RandomRotate()
@@ -224,8 +234,9 @@ begin
   repeat
     begin
       Antiban.DoAntiban();
-      if not RSClient.IsLoggedIn() then Login.LoginPlayer();
-      if Minimap.GetHPLevel < HpToEatAt then Inventory.ClickItem(Food);
+      if (not RSClient.IsLoggedIn()) then 
+        Login.LoginPlayer();
+      HealthManagement();
       Step := GetStep();
       if Step < 0 then WriteLn('Unknown Step!');
       if Step = 0 then StartStep();

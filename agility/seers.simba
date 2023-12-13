@@ -50,7 +50,6 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| ~     seers hopper v1.00     ~ |");
   WriteLn('|--------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Agility exp    : ', GainedXP);
@@ -78,9 +77,13 @@ end;
 
 procedure HealthManagement();
 begin
-  if Minimap.GetHPLevel < HpToEatAt then
-  if (not Inventory.ClickItem(Food)) then
-    TerminateScript('Could not eat food, possible out of it?');
+  if (Minimap.GetHPLevel() < HpToEatAt) then
+    begin
+      if Inventory.ContainsItem(Food) then
+        Inventory.ClickItem(Food)
+      else
+        TerminateScript('Could not eat food, possible out of it?');
+    end;
 end;
 
 procedure TAntiban.DoLoseFocus();
@@ -256,7 +259,8 @@ begin
   repeat
     begin
       Antiban.DoAntiban();
-      if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+      if (not RSClient.IsLoggedIn()) then 
+        Login.LoginPlayer();
       HealthManagement();
       Step := GetStep();
       if Step < 0 then WriteLn('Unknown Step!');

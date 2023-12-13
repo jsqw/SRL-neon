@@ -23,10 +23,10 @@ var
                                  [825, 502], [825, 502],
                                  [456, 352],  [584, 420], [868, 412],
                                  [816, 383]];
-  AreaArray: TBoxArray := [[18, 300, 316, 525], // whole alkharid
+  AreaArray: TBoxArray := [[18, 300, 316, 525],
                            [690, 380, 741, 443],
                            [657, 451, 720, 520],
-                           [737, 445, 785, 534], // step3, walk to [[804, 494], [808, 494], [812, 494], [804, 498], [808, 498], [812, 498]]
+                           [737, 445, 785, 534],
                            [784, 472, 836, 531],
                            [423, 349, 468, 391],
                            [559, 424, 605, 460],
@@ -50,7 +50,6 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn("| ~  al kharid hopper v0.01  ~ |");
   WriteLn('| -----------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Agility exp    : ', GainedXP);
@@ -132,6 +131,17 @@ begin
   for i := 0 to High(AreaArray) do
     if AreaArray[i].Contains(pos) then Exit(i);
   Exit(-1);
+end;
+
+procedure HealthManagement();
+begin
+  if (Minimap.GetHPLevel() < HpToEatAt) then
+    begin
+      if Inventory.ContainsItem(Food) then
+        Inventory.ClickItem(Food)
+      else
+        TerminateScript('Could not eat food, possible out of it?');
+    end;
 end;
 
 procedure StartStep();
@@ -223,8 +233,9 @@ begin
   repeat
     begin
       Antiban.DoAntiban();
-      if not RSClient.IsLoggedIn() then Login.LoginPlayer();
-      if Minimap.GetHPLevel < HpToEatAt then Inventory.ClickItem(Food);
+      if (not RSClient.IsLoggedIn()) then 
+        Login.LoginPlayer();
+      HealthManagement();
       Step := GetStep();
       if Step < 0 then WriteLn('Unknown Step!');
       if Step = 0 then StartStep();
