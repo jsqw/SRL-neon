@@ -1,94 +1,73 @@
 # SRL-neon
 
-Scripts made with SRL and WaspLib to be used alongside RuneLite and its plugins.
+This repository contains scripts for use with RuneLite and its plugins, developed using SRL and WaspLib.
 
 ## Using Simba with RuneLite
 
-This tutorial assumes that you have previously used 32-bit Simba, e.g. the waspscripts.com automatic installer.
+This guide is tailored for users familiar with the 32-bit version of Simba, such as those installed via the waspscripts.com automatic installer.
 
 ### Getting 64-bit Simba
 
-Start by downloading the 64-bit version of Simba. You still need to do this even if you have 32-bit Simba previously installed.
+1. **Download the 64-bit Simba:**
+   Even if you have the 32-bit version, you need the 64-bit version to use it with RuneLite. Download it from [Simba's GitHub Release Page](https://github.com/Villavu/Simba/releases/tag/simba1400-release).
 
-You can find 64-bit Simba [here](https://github.com/Villavu/Simba/releases/tag/simba1400-release).
+   ![Download Simba](https://i.imgur.com/D2zMG7E.png)
 
-![simbadl](https://i.imgur.com/D2zMG7E.png)
+2. **Configure the 64-bit Version:**
+   Move the downloaded `.exe` file to your Simba installation folder, typically located at `C:\Users\username\AppData\Local\Simba`. Consider creating a desktop shortcut for easy access.
 
-After downloading, move the 64-bit .exe file to your SimbaFolder, which is by default at:
+   ![Create Shortcut](https://i.imgur.com/J21Mxrn.png)
 
-`C:\Users\username\AppData\Local\Simba`
+3. **Organize Shortcuts:**
+   Rename the shortcuts for better clarity.
 
-After moving the file, it is recommended to send a shortcut to the Desktop:
+   ![Rename Shortcuts](https://i.imgur.com/ev6e4jn.png)
 
-![scut](https://i.imgur.com/J21Mxrn.png)
+### Setting Up RuneLite
 
-For clarity, let's rename the shortcuts:
+1. **Install RuneLite:**
+   If you haven't already, download and install RuneLite from [www.runelite.net](www.runelite.net).
 
-![rename](https://i.imgur.com/ev6e4jn.png)
+   ![RuneLite Installation](https://i.imgur.com/jVeUqY3.png)
 
-### Getting RuneLite and the .properties file
+2. **Configure RuneLite:**
 
-Download and install RuneLite, if you haven't already.
+   - Locate and download the `.properties` file for neon scripts from the [SRL-neon repository](https://github.com/jsqw/SRL-neon).
+   - In RuneLite, go to settings and then the profiles tab.
+   - Import the downloaded `.properties` file.
 
-[www.runelite.net](www.runelite.net)
+   ![Import Profile](https://i.imgur.com/11M31kW.png)
 
-![rl](https://i.imgur.com/jVeUqY3.png)
+3. **Profile Management:**
 
-After installing RuneLite, head to the repository and locate the .properties file, which includes plugin setups for the neon [scripts](https://github.com/jsqw/SRL-neon).
+   - Rename the imported profile to 'neon'.
+   - Activate it by double-clicking, and then close RuneLite.
 
-Click the small icon to download the file.
+   ![Activate Profile](https://i.imgur.com/mBv50VN.png)
 
-![save](https://i.imgur.com/xGs9WrW.png)
+4. **Create Shortcuts:**
 
-After you have downloaded the .properties file, open up RuneLite settings and the profiles tab.
+   - Duplicate the RuneLite desktop shortcut by copying and pasting it on the Desktop.
+   - Rename them descriptively.
+   - Modify properties: Add `--profile=neon` for the neon profile and `--profile=default` for your standard profile.
 
-Click import profile and locate the file you just downloaded.
+   ![Shortcut Properties](https://i.imgur.com/JEqq9lp.png)
+   ![Launch Profiles](https://i.imgur.com/yy7kdTI.png)
 
-Lastly, click open.
+5. **Launch Setup:**
+   Open 64-bit Simba and the Neon RuneLite. Initially, you may need to approve the newly installed 64-bit Simba.
 
-![cl](https://i.imgur.com/11M31kW.png)
+   ![Trust Simba](https://i.imgur.com/V8BYEr6.png)
 
-Rename the Imported profile as neon.
+6. **Pre-Script Checks:**
+   Before running any scripts, ensure the RuneLite sidebar is hidden and the target selector is manually dragged into the client window.
 
-![sve](https://i.imgur.com/iDGKZUW.png)
+   ![Preparation Steps](https://i.imgur.com/4GxwF4U.png)
 
-After renaming the profile, double-click it to activate it.
+### Acknowledgements
 
-![sadve](https://i.imgur.com/mBv50VN.png)
+Special thanks to:
 
-Close RuneLite.
-
-After closing RuneLite, copy and paste the Desktop shortcut of RuneLite to have two copies of it.
-
-![scpe](https://i.imgur.com/mjvGHXq.png)
-
-Rename them with descriptive names.
-
-![names](https://i.imgur.com/VZ9OjuL.png)
-
-Open the properties of both of them.
-
-![prop](https://i.imgur.com/JEqq9lp.png)
-
-Add the flag: `--profile=neon` to the Neon shortcut and `--profile=default` to your normal RuneLite shortcut. Click apply and OK.
-
-![proff](https://i.imgur.com/yy7kdTI.png)
-
-Now you should have two different RuneLite shortcuts, one for the Default profile you can play on and one for the Neon profile that you can bot on.
-
-Start up the 64-bit Simba and the Neon RuneLite. On the first time, you might have to trust the new 64-bit Simba that you downloaded:
-
-![protrff](https://i.imgur.com/V8BYEr6.png)
-
-Before running scripts with RuneLite you have to always make sure that:
-
-- The RuneLite sidebar is hidden
-- You have manually dragged the target selector to the client window.
-
-![dd](https://i.imgur.com/4GxwF4U.png)
-
-### Thanks to:
-
-- Torwent (waspscripts.com, SRL-T and WaspLib)
-- Slacky (answering my questions, work towards SRL)
-- Flight (tutorials on villavu and helping with questions)
+- Torwent (waspscripts.com, SRL-T, and WaspLib)
+- Slacky (for answering questions and contributions to SRL)
+- Flight (for tutorials on villavu and assistance with queries)
