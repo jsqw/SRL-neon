@@ -2,6 +2,30 @@
 
 This repository contains scripts for use with RuneLite and its plugins, developed using SRL and WaspLib.
 
+## Script list:
+
+### Agility
+
+Currently supported courses:
+
+- Draynor rooftop
+- Al Kharid rooftop
+- Canifis rooftop
+- Seer's Village rooftop
+- Pollnivneach rooftop
+
+### Bonfirer
+
+Automatically and progressively levels woodcutting and firemaking north of the Crafting Guild.
+
+### Camdozaal fisher
+
+Levels fishing, cooking and prayer in the ruins of Camdozaal.
+
+### Mage Training Arena
+
+Automatically completes the four different rooms of the minigame.
+
 ## Using Simba with RuneLite
 
 This guide is tailored for users familiar with the 32-bit version of Simba, such as those installed via the waspscripts.com automatic installer.

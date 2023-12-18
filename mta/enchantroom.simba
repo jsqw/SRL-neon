@@ -159,6 +159,7 @@ begin
     Mouse.Click(MOUSE_LEFT)
   else
     KeyboardRotate();
+  Wait(2000);
 end;
 
 procedure GatherCubes();
@@ -235,6 +236,7 @@ procedure EnchantCubes();
 var
   allSlots: TIntegerArray;
   i: Int32;
+  Pt: TPoint;
 begin
   if (SRL.Dice(90)) then
     begin
@@ -244,11 +246,16 @@ begin
           Magic.CastSpell(ENCHANTSPELL);
           WaitEx(50, 25);
           if (not Inventory.ContainsItem(CUBE)) then
-            break;
+            begin
+              Pt := SRL.rowp(Mouse.Position(), Mainscreen.Bounds());
+              Mouse.HumanMove(Pt);
+              Mouse.Click(MOUSE_LEFT);
+              Break;
+            end;
           Inventory.MouseSlot(allSlots.Max());
           WaitEx(50, 25);
           Mouse.Click(MOUSE_LEFT);
-          WaitEx(1337, 50);
+          WaitEx(1750, 50);
         end;
     end
   else
