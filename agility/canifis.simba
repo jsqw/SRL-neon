@@ -168,6 +168,7 @@ begin
   Rect := RSW.GetTileMs(ObstacleArray[0]);
   Rect := Rect.Expand(12);
   Bds := Rect.Bounds();
+  Bds.LimitTo(Mainscreen.Bounds());
   RSClient.Image.DrawBox(Bds, clBlue);
 
   SRL.FindColors(TPA, HLColor, Rect.Bounds());
