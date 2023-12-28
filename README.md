@@ -11,8 +11,9 @@ Currently supported courses:
 - Draynor rooftop
 - Al Kharid rooftop
 - Canifis rooftop
-- Seer's Village rooftop
+- Seer's village rooftop
 - Pollnivneach rooftop
+- Ardougne rooftop
 
 ### Bonfirer
 
