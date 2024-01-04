@@ -64,7 +64,7 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn('| MTA v2.1              by n0ll |');
+  WriteLn('| MTA v2.0              by n0ll |');
   WriteLn('| The Telekinetic Theatre       |');
   WriteLn('|-------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
@@ -218,7 +218,7 @@ begin
           Wait(50, 100);
           Mouse.Click(MOUSE_LEFT);
           WaitUntil(InCorrectTile(), 500, 4000);
-          WaitEx(333, 33);
+          WaitEx(250, 50);
           Exit();
         end;
     end;
@@ -227,7 +227,7 @@ begin
   Wait(50, 100);
   Mouse.Click(MOUSE_LEFT);
   WaitUntil(InCorrectTile(), 500, 4000);
-  WaitEx(333, 33);
+  WaitEx(250, 50);
 end;
 
 procedure HandleChat();
