@@ -50,16 +50,14 @@ end;
 procedure PrintProgress();
 begin
   ClearDebug();
-  WriteLn('|--------------------------------|');
+  WriteLn('|-------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Agility exp    : ', GainedXP);
   WriteLn('| Failsafe timer : ', SRL.MsToTime((300000-Timer.ElapsedTime), Time_Short));
   WriteLn('| Next break     : ', Antiban.TimeUntilBreak(Antiban.Breaks[0]));
-  WriteLn('|--------------------------------|');
+  WriteLn('|-------------------------------|');
 end;
 
-// A custom Keyboard version of Antiban.RandomRotate()
-// Rotating with mouse3 doesn't work well with RuneLite
 procedure KeyboardRotate();
 var
   Arrow: Integer;
@@ -69,7 +67,7 @@ begin
     Arrow := $25
   else
     Arrow := $27;
-  Duration := SRL.NormalRange(500, 1500);
+  Duration := SRL.NormalRange(425, 1250);
   Keyboard.KeyDown(Arrow);
   Sleep(Duration);
   Keyboard.KeyUp(Arrow);
@@ -116,7 +114,8 @@ begin
   RSW.Setup('agility');
   RSGroundItems.Setup();
   SetupAntiBan();
-  if not RSClient.IsLoggedIn() then Login.LoginPlayer();
+  if (not RSClient.IsLoggedIn()) then 
+    Login.LoginPlayer();
   WaitUntil(RSClient.IsLoggedIn(), 100, 10000);
   StartXP := XPBar.Read();
   Timer.Start();
@@ -128,8 +127,10 @@ begin
   CurrentXP := XPBar.Read();
   t         := GainedXP;
   GainedXP  := CurrentXP - StartXP;
-  if GainedXP > t then Timer.Reset();
-  if Timer.ElapsedTime > 300000 then TerminateScript('No Gained XP in 5 minutes!')
+  if (GainedXP > t) then 
+    Timer.Reset();
+  if (Timer.ElapsedTime > 300000) then 
+    TerminateScript('No Gained XP in 5 minutes!')
 end;
 
 function GetStep(): Int32;
@@ -263,9 +264,10 @@ begin
         Login.LoginPlayer();
       HealthManagement();
       Step := GetStep();
-      if Step < 0 then WriteLn('Unknown Step!');
-      if Step = 0 then StartStep();
-      if Step > 0 then NormalStep(Step);
+      if (Step = 0) then 
+        StartStep();
+      else if (Step > 0) then 
+        NormalStep(Step);
       WaitEx(100, 25);
     end;
   until false;
