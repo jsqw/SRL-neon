@@ -2,6 +2,12 @@
 
 This repository contains scripts for use with RuneLite and its plugins, developed using SRL and WaspLib.
 
+If you are facing issues when using the scripts, please ensure:
+
+- You are running the script in `Fixed mode`
+- You have the `RuneLite` profile loaded
+- You have restarted your `RuneLite` and `Simba`
+
 ## Script list:
 
 ### Agility
