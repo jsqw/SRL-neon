@@ -33,6 +33,8 @@ Levels fishing, cooking and prayer in the ruins of Camdozaal.
 
 Automatically completes the four different rooms of the minigame.
 
+In the Creature Graveyard room the bot will run in suicide for points, unless you have unlocked the Bones to peaches spell and configured it on line 16.
+
 ## Using Simba with RuneLite
 
 This guide is tailored for users familiar with the 32-bit version of Simba, such as those installed via the waspscripts.com automatic installer.
