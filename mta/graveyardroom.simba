@@ -257,6 +257,8 @@ begin
   if (PEACHES_UNLOCKED and (HP < HPToEatAt)) then
     begin
       Magic.CastSpell(ERSSpell.BONES_TO_PEACHES);
+      WaitUntil(Inventory.IsOpen(), 250, 2500);
+      WaitEx(50, 25);
       Inventory.ClickItem('Peach');
     end
   else
