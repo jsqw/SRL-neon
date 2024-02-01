@@ -3,31 +3,37 @@ program draynor;
 {$I WaspLib/osr.simba}
 {$DEFINE FORMS_V2}
 
-// fixed mode, zoomed far out
-
 begin
-  Login.PlayerIndex := 2;
+  Login.PlayerIndex := 1;
+  Mouse.Speed := SRL.NormalRange(10, 20);
 end;
 
 var
   Food: TRSItem := 'Jug of wine';
   HpToEatAt: Int32 := 12;
-  StartTileArray: TPointArray := [[816, 102], [820, 102], [824, 102],
-                                  [816, 106], [820, 106], [824, 106]];
+
+  StartTileArray: TPointArray := [
+    [816, 102], [820, 102], [824, 102],
+    [816, 106], [820, 106], [824, 106]
+  ];
   RSW: TRSWalker;
   Step, StartXP, CurrentXP, GainedXP: Int32;
   Timer: TStopwatch;
-  HLColor: TCTS2Color :=  CTS2(2400797, 13, 0.18, 2.39);
-  ObstacleArray: TPointArray := [[816, 98], [536, 98], [510, 102],
-                                 [500, 150], [496, 182],
-                                 [524, 186],  [550, 162]];
-  AreaArray: TBoxArray := [[675, 45, 891, 245], // whole draynor
-                           [529, 79, 556, 102],
-                           [481, 88, 525, 121],
-                           [493, 128, 529, 151],
-                           [489, 159, 501, 182],
-                           [489, 182, 525, 190],
-                           [525, 160, 552, 186]];
+  HLColor: TCTS2Color := CTS2(2400797, 13, 0.18, 2.39);
+  ObstacleArray: TPointArray := [
+    [816, 98], [536, 98], [510, 102],
+    [500, 150], [496, 182],
+    [524, 186], [550, 162]
+  ];
+  AreaArray: TBoxArray := [
+    [675, 45, 891, 245],
+    [529, 79, 556, 102],
+    [481, 88, 525, 121],
+    [493, 128, 529, 151],
+    [489, 159, 501, 182],
+    [489, 182, 525, 190],
+    [525, 160, 552, 186]
+  ];
 
 procedure PauseTimer(Task: PBreakTask);
 var T: PBreakTask;
@@ -56,13 +62,13 @@ end;
 
 procedure HealthManagement();
 begin
-  if (Minimap.GetHPLevel() < HpToEatAt) then
-    begin
-      if Inventory.ContainsItem(Food) then
-        Inventory.ClickItem(Food)
-      else
-        TerminateScript('Could not eat food!');
-    end;
+  if Minimap.GetHPLevel() < HpToEatAt then
+  begin
+    if Inventory.ContainsItem(Food) then
+      Inventory.ClickItem(Food)
+    else
+      TerminateScript('Could not eat food!');
+  end;
 end;
 
 procedure KeyboardRotate();
@@ -94,13 +100,14 @@ begin
 
   Antiban.AddTask(ONE_MINUTE*2,   @Mouse.RandomMovement);
   Antiban.AddTask(ONE_MINUTE*5,   @Antiban.HoverMSPlayers);
-  Antiban.AddTask(ONE_MINUTE*3,   @Antiban.DoLoseFocus);
+  Antiban.AddTask(ONE_MINUTE*6,   @Antiban.DoLoseFocus);
   Antiban.AddTask(ONE_MINUTE*7,   @KeyboardRotate);
+  Antiban.AddTask(ONE_MINUTE*7,   @Antiban.RandomRotate);
   Antiban.AddTask(ONE_MINUTE*8,   @Antiban.HoverMSNPCs);
   Antiban.AddTask(ONE_MINUTE*25,  @Antiban.HoverSkills);
-  Antiban.AddBreak(ONE_MINUTE * 5, ONE_SECOND*10, 0.2, 0);
-  Antiban.AddBreak(40 * ONE_MINUTE, 7 * ONE_MINUTE);
-  Antiban.AddBreak(10 * ONE_HOUR, 6 * ONE_HOUR);
+  Antiban.AddBreak(ONE_MINUTE * 5, ONE_SECOND*10, 0.9, 0);
+  Antiban.AddBreak(40 * ONE_MINUTE, 7 * ONE_MINUTE, 0.8, 1);
+  Antiban.AddBreak(12 * ONE_HOUR, 5 * ONE_HOUR);
   Antiban.OnStartBreak := @PauseTimer;
   Antiban.OnFinishBreak := @ResumeTimer;
 end;
@@ -134,10 +141,10 @@ var
   pos: TPoint;
   i: Int32;
 begin
-  CalculateXP();
   pos := RSW.GetMyPos();
   for i := 0 to High(AreaArray) do
-    if AreaArray[i].Contains(pos) then Exit(i);
+    if AreaArray[i].Contains(pos) then
+      Exit(i);
   Exit(-1);
 end;
 
@@ -149,35 +156,39 @@ var
   XP: Int32;
   Bds: TBox;
 begin
-  PrintProgress();
+  RSClient.Image.Clear();
   Pos := RSW.GetMyPos();
   GoalTile := StartTileArray.RandomValue();
 
   if (Pos.DistanceTo(GoalTile) > 20) then
-    begin
-      RSW.WalkBlind(GoalTile);
-      WaitEx(250, 50);
-    end
+  begin
+    RSW.WalkBlind(GoalTile);
+    WaitEx(250, 50);
+  end;
 
   Rect := RSW.GetTileMs(ObstacleArray[0]);
   Rect := Rect.Expand(30);
   Bds := Rect.Bounds();
   Bds.LimitTo(Mainscreen.Bounds());
+  RSClient.Image.DrawBox(Bds, clWhite);
+
   SRL.FindColors(TPA, HLColor, Bds);
 
   if TPA.Len() > 0 then
+  begin
+    RSClient.Image.DrawTPA(TPA, clRed);
+    XP := XPBar.Read();
+    Mouse.HumanMove(TPA.Mean());
+    WaitEx(50, 25);
+
+    if MainScreen.IsUpText('Climb') then
     begin
-      XP := XPBar.Read();
-      Mouse.HumanMove(TPA.Mean());
-      WaitEx(50, 25);
-      if MainScreen.IsUpText('Climb') then
-        begin
-          Mouse.Click(MOUSE_LEFT);
-          WaitUntil(XPBar.Read > XP, 200, 10000);
-          WaitEx(350, 50);
-          Exit();
-        end;
-    end
+      Mouse.Click(MOUSE_LEFT);
+      WaitUntil(XPBar.Read() > XP, 200, 10000);
+      WaitEx(350, 50);
+      Exit();
+    end;
+  end;
   KeyboardRotate();
 end;
 
@@ -190,38 +201,43 @@ var
   Bds: TBox;
   UpText: String;
 begin
+  RSClient.Image.Clear();
   RSGroundItems.MarkOfGrace.Find(graceATPA);
   if RSGroundItems.MarkOfGrace.Find(graceATPA) then
     if AreaArray[Step].Contains(RSGroundItems.MarkOfGrace.ClosestDot) then
-      begin
-          RSGroundItems.MarkOfGrace.Click(true, 1);
-          Wait(2000, 2500);
-      end;
+    begin
+      RSGroundItems.MarkOfGrace.Click(True, 1);
+      Wait(2000, 3500);
+    end;
 
   Rect := RSW.GetTileMs(ObstacleArray[Step]);
   Rect := Rect.Expand(30);
   Bds := Rect.Bounds();
   Bds.LimitTo(Mainscreen.Bounds());
   SRL.FindColors(TPA, HLColor, Bds);
+  RSClient.Image.DrawBox(Bds, clWhite);
+
   if TPA.Len() > 0 then
+  begin
+    RSClient.Image.DrawTPA(TPA, clRed);
+    XP := XPBar.Read();
+    Mouse.HumanMove(TPA.Mean());
+    WaitEx(50, 45);
+    UpText := Mainscreen.GetUpText();
+
+    if UpText.ContainsAny(['Climb', 'Jump', 'Balance', 'Cross', 'Leap', 'Hurdle', 'Vault', 'Jump-off']) then
     begin
-      XP := XPBar.Read();
-      Mouse.HumanMove(TPA.Mean());
-      WaitEx(50, 25);
-      UpText := Mainscreen.GetUpText();
-      if UpText.ContainsAny(['Climb', 'Jump', 'Balance', 'Cross', 'Leap', 'Hurdle', 'Vault', 'Jump-off']) then
-        begin
-          Mouse.Click(MOUSE_LEFT);
-          WaitUntil(((XPBar.Read > XP) or AreaArray[0].Contains(RSW.GetMyPos())), 200, 10000);
-          // for some reason xp drop comes early when crossing tightropes
-          if UpText.Contains('ightrope') then
-            Wait(400);
-          WaitEx(450, 50);
-          Exit();
-        end;
-      end;
+      Mouse.Click(MOUSE_LEFT);
+      WaitUntil(((XPBar.Read > XP) or AreaArray[0].Contains(RSW.GetMyPos())), 200, 10000);
+      if UpText.Contains('ightrope') then
+        Wait(400);
+      WaitEx(650, 325);
+      Exit();
+    end;
+  end;
   KeyboardRotate();
-end
+end;
+
 
 begin
   InitiateScript();
@@ -230,13 +246,15 @@ begin
       Antiban.DoAntiban();
       if (not RSClient.IsLoggedIn()) then
         Login.LoginPlayer();
+      CalculateXP();
+      PrintProgress();
       HealthManagement();
       Step := GetStep();
       if (Step = 0) then
         StartStep()
       else if (Step > 0) then
         NormalStep(Step);
-      WaitEx(250, 25);
+      WaitEx(250, 200);
     end;
   until false;
 end.
