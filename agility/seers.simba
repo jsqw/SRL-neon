@@ -8,30 +8,38 @@ begin
 end;
 
 var
-  Food: TRSItem := 'Cake';
-  HpToEatAt: Int32 := 9;
-  StartTileArray: TPointArray := [[480, 1098], [484, 1098], [488, 1098], [492, 1098],
-                                  [480, 1102], [484, 1102], [488, 1102], [492, 1102],
-                                  [488, 1094], [492, 1094]];
+  Food: TRSItem := 'Lobster';
+  HpToEatAt: Int32 := 15;
+  StartTiles: TPointArray := [
+                              [480, 1098], [484, 1098],
+                              [488, 1098], [492, 1098],
+                              [480, 1102], [484, 1102],
+                              [488, 1102], [492, 1102],
+                              [488, 1094], [492, 1094]
+                              ];
   RSW: TRSWalker;
   Step: Int32;
   Timer: TStopwatch;
   StartXP: Int32;
   CurrentXP: Int32;
   GainedXP: Int32 := 0;
-  HLColor: TCTS2Color :=  CTS2(2400797, 13, 0.18, 2.39);
-  ObstacleArray: TPointArray := [[492, 1086], [492, 1086], [794, 1122],
-                                 [1022, 1144], [1030, 1196],
-                                 [722, 1222],  [722, 1222],
-                                 [990, 1248]];
-  AreaArray: TBoxArray := [[390, 1176, 410, 1205],
+  HLColor: TCTS2Color := CTS2(2861133, 9, 0.55, 4.37);
+  ObstacleArray: TPointArray := [
+                                  [492, 1086], [492, 1086],
+                                  [794, 1122], [1022, 1144],
+                                  [1030, 1196], [722, 1222],
+                                  [722, 1222], [990, 1248]
+                                 ];
+  AreaArray: TBoxArray := [
+                           [390, 1176, 410, 1205],
                            [309, 1000, 583, 1282],
                            [794, 1102, 850, 1152],
                            [987, 1098, 1059, 1155],
                            [1005, 1164, 1061, 1200],
                            [744, 1195, 794, 1234],
                            [700, 1179, 794, 1234],
-                           [932, 1229, 1030, 1300]];
+                           [932, 1229, 1030, 1300]
+                          ];
 
 procedure PauseTimer(Task: PBreakTask);
 var T: PBreakTask;
@@ -47,9 +55,22 @@ begin
   T := Task;
 end;
 
+procedure CalculateXP();
+var t: Int32;
+begin
+  CurrentXP := XPBar.Read();
+  t         := GainedXP;
+  GainedXP  := CurrentXP - StartXP;
+  if (GainedXP > t) then
+    Timer.Reset();
+  if (Timer.ElapsedTime > 300000) then
+    TerminateScript('No Gained XP in 5 minutes!')
+end;
+
 procedure PrintProgress();
 begin
   ClearDebug();
+  CalculateXP();
   WriteLn('|-------------------------------|');
   WriteLn('| Time running   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
   WriteLn('| Agility exp    : ', GainedXP);
@@ -67,7 +88,7 @@ begin
     Arrow := $25
   else
     Arrow := $27;
-  Duration := SRL.NormalRange(425, 1250);
+  Duration := SRL.NormalRange(425, 1750);
   Keyboard.KeyDown(Arrow);
   Sleep(Duration);
   Keyboard.KeyUp(Arrow);
@@ -98,13 +119,14 @@ begin
 
   Antiban.AddTask(ONE_MINUTE*2,   @Mouse.RandomMovement);
   Antiban.AddTask(ONE_MINUTE*5,   @Antiban.HoverMSPlayers);
-  Antiban.AddTask(ONE_MINUTE*3,   @Antiban.DoLoseFocus);
+  Antiban.AddTask(ONE_MINUTE*6,   @Antiban.DoLoseFocus);
   Antiban.AddTask(ONE_MINUTE*7,   @KeyboardRotate);
+  Antiban.AddTask(ONE_MINUTE*7,   @Antiban.RandomRotate);
   Antiban.AddTask(ONE_MINUTE*8,   @Antiban.HoverMSNPCs);
   Antiban.AddTask(ONE_MINUTE*25,  @Antiban.HoverSkills);
-  Antiban.AddBreak(ONE_MINUTE * 5, ONE_SECOND*10, 0.2, 0);
-  Antiban.AddBreak(43 * ONE_MINUTE, 9 * ONE_MINUTE);
-  Antiban.AddBreak(10 * ONE_HOUR, 6 * ONE_HOUR);
+  Antiban.AddBreak(ONE_MINUTE * 5, ONE_SECOND*10, 0.9, 0);
+  Antiban.AddBreak(40 * ONE_MINUTE, 7 * ONE_MINUTE, 0.8, 1);
+  Antiban.AddBreak(12 * ONE_HOUR, 5 * ONE_HOUR);
   Antiban.OnStartBreak := @PauseTimer;
   Antiban.OnFinishBreak := @ResumeTimer;
 end;
@@ -114,23 +136,11 @@ begin
   RSW.Setup('agility');
   RSGroundItems.Setup();
   SetupAntiBan();
-  if (not RSClient.IsLoggedIn()) then 
+  if not RSClient.IsLoggedIn() then
     Login.LoginPlayer();
   WaitUntil(RSClient.IsLoggedIn(), 100, 10000);
   StartXP := XPBar.Read();
   Timer.Start();
-end;
-
-procedure CalculateXP();
-var t: Int32;
-begin
-  CurrentXP := XPBar.Read();
-  t         := GainedXP;
-  GainedXP  := CurrentXP - StartXP;
-  if (GainedXP > t) then 
-    Timer.Reset();
-  if (Timer.ElapsedTime > 300000) then 
-    TerminateScript('No Gained XP in 5 minutes!')
 end;
 
 function GetStep(): Int32;
@@ -140,7 +150,8 @@ var
 begin
   pos := RSW.GetMyPos();
   for i := 0 to High(AreaArray) do
-    if AreaArray[i].Contains(pos) then Exit(i);
+    if AreaArray[i].Contains(pos) then
+      Exit(i);
   Exit(-1);
 end;
 
@@ -155,15 +166,12 @@ var
   Bds: TBox;
 begin
   RSClient.Image.Clear();
-  CalculateXP();
-  PrintProgress();
   CurrentTile := RSW.GetMyPos();
-  GoalTile := StartTileArray.RandomValue();
+  GoalTile := StartTiles.RandomValue();
   Path := [[426, 1190], [452, 1182], [466, 1154], [480, 1126], [488, 1106], GoalTile];
   RSW.WalkPath(Path);
-  WaitEx(425, 125);
-  Rect := RSW.GetTileMs(ObstacleArray[0]);
-  Rect := Rect.Expand(30);
+  WaitEx(625, 425);
+  Rect := RSW.GetTileMs(ObstacleArray[0]).Expand(24);
   Bds := Rect.Bounds();
   Bds.LimitTo(Mainscreen.Bounds());
   RSClient.Image.DrawBox(Bds, clWhite);
@@ -173,17 +181,16 @@ begin
     RSClient.Image.DrawTPA(TPA, clRed);
     XP := XPBar.Read();
     Mouse.HumanMove(TPA.Mean());
-    WaitEx(250, 25);
+    WaitEx(75, 75);
     if MainScreen.IsUpText('Climb') then
-      begin
-        Mouse.Click(MOUSE_LEFT);
-        WaitUntil(XPBar.Read > XP, 200, 10000);
-        Exit();
-      end
-    else KeyboardRotate();
-    WriteLn('Unable to find next obstacle!');
-    Exit();
+    begin
+      Mouse.Click(MOUSE_LEFT);
+      WaitUntil(XPBar.Read > XP, 200, 10000);
+      WaitEx(55, 40);
+      Exit();
+    end
   end;
+  KeyboardRotate();
 end;
 
 procedure NormalStep(Step: Int32);
@@ -200,59 +207,60 @@ var
   UpText: String;
 begin
   RSClient.Image.Clear();
-  GoalTile := StartTileArray.RandomValue();
 
   if Step = 1 then
-    begin
+  begin
       Pos := RSW.GetMyPos();
+      GoalTile := StartTiles.RandomValue();
       if (Pos.DistanceTo(GoalTile) > 20) then
+      begin
         RSW.WalkBlind(GoalTile);
-    end
+        WaitEx(1765, 1225);
+      end;
+  end
   else
-    begin
-      RSGroundItems.MarkOfGrace.Find(graceATPA);
-      if RSGroundItems.MarkOfGrace.Find(graceATPA) then
-        if AreaArray[Step].Contains(RSGroundItems.MarkOfGrace.ClosestDot) then
-          begin
-            RSGroundItems.MarkOfGrace.Click(true, 1);
-            Wait(2000, 2500);
-          end;
-    end;
+  begin
+    RSGroundItems.MarkOfGrace.Find(graceATPA);
+    if RSGroundItems.MarkOfGrace.Find(graceATPA) then
+      if AreaArray[Step].Contains(RSGroundItems.MarkOfGrace.ClosestDot) then
+      begin
+        RSGroundItems.MarkOfGrace.Click(true, 1);
+        WaitEx(3500, 1250);
+      end;
+  end;
 
-  Rect := RSW.GetTileMs(ObstacleArray[Step]);
-  Rect := Rect.Expand(30);
+  Rect := RSW.GetTileMs(ObstacleArray[Step]).Expand(24);
   Bds := Rect.Bounds();
   Bds.LimitTo(Mainscreen.Bounds());
   RSClient.Image.DrawBox(bds, clWhite);
   SRL.FindColors(TPA, HLColor, Bds);
-  if (TPA.Len() > 0) then
+  if TPA.Len() > 0 then
   begin
     RSClient.Image.DrawTPA(TPA, clRed);
     XP := XPBar.Read();
     Mouse.HumanMove(TPA.Mean());
-    WaitEx(50, 25);
+    WaitEx(75, 55);
     UpText := Mainscreen.GetUpText();
-    if UpText.ContainsAny(['Climb', 'Jump', 'Balance', 'Cross', 'Leap', 'Hurdle', 'Vault', 'Jump-off']) then
+    if UpText.ContainsAny(['Climb', 'Jump', 'Balance', 'Cross', 'Leap']) then
       begin
         Mouse.Click(MOUSE_LEFT);
         WaitUntil(((XPBar.Read > XP) or AreaArray[0].Contains(RSW.GetMyPos())), 200, 10000);
         if UpText.Contains('ightrope') then
           Wait(600);
-        WaitEx(50, 25);
+        WaitEx(225, 125);
         Exit();
       end
   end
   else
+  begin
+    if (Step = 5) then
     begin
-      if (Step = 5) then
-        begin
-          GoalTile := Step5Array.RandomValue();
-          RSW.WalkBlind(GoalTile);
-          Exit();
-        end
-      else
-        KeyboardRotate();
-    end;
+      GoalTile := Step5Array.RandomValue();
+      RSW.WalkBlind(GoalTile);
+      Exit();
+    end
+  end;
+  KeyboardRotate();
 end
 
 begin
@@ -260,15 +268,16 @@ begin
   repeat
     begin
       Antiban.DoAntiban();
-      if (not RSClient.IsLoggedIn()) then 
+      if not RSClient.IsLoggedIn() then
         Login.LoginPlayer();
       HealthManagement();
       Step := GetStep();
-      if (Step = 0) then 
-        StartStep();
-      else if (Step > 0) then 
+      if (Step = 0) then
+        StartStep()
+      else if (Step > 0) then
         NormalStep(Step);
-      WaitEx(100, 25);
+      WaitEx(575, 325);
+      PrintProgress();
     end;
   until false;
 end.
