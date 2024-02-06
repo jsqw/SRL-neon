@@ -267,10 +267,10 @@ begin
   InitiateScript();
   repeat
     begin
-      if (not RSClient.IsLoggedIn()) then
+      Antiban.DoAntiban();
+      if not RSClient.IsLoggedIn() then
         Login.LoginPlayer();
       CalculateXP();
-      Antiban.DoAntiban();
       HealthManagement();
       Step := GetStep();
       if (Step = 0) then

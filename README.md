@@ -27,7 +27,7 @@ Automatically and progressively levels woodcutting and firemaking north of the C
 
 ### Camdozaal fisher
 
-Levels fishing, cooking and prayer in the ruins of Camdozaal.
+Removed, see the vanilla repo for newer version.
 
 ### Mage Training Arena
 
