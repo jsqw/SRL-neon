@@ -54,8 +54,6 @@ begin
   WriteLn('|-----------------------------------|');
 end;
 
-// A custom Keyboard version of Antiban.RandomRotate()
-// Rotating with mouse3 doesn't work well with RuneLite
 procedure KeyboardRotate();
 var
   Arrow: Integer;
@@ -174,7 +172,7 @@ begin
       RSClient.Image.DrawTPA(TPA, clRed);
       XP := XPBar.Read();
       Mouse.HumanMove(TPA.Mean());
-      WaitEx(50, 25);
+      WaitEx(75, 50);
       if MainScreen.IsUpText('Climb') then
         begin
           Mouse.Click(MOUSE_LEFT);
@@ -252,7 +250,7 @@ begin
         StartStep()
       else if (Step > 0) then
         NormalStep(Step);
-      WaitEx(250, 25);
+      WaitEx(450, 225);
     end;
   until false;
 end.

@@ -8,7 +8,7 @@ begin
 end;
 
 var
-  Food: TRSItem := 'Cake';
+  Food: TRSItem := 'Lobster';
   HpToEatAt: Int32 := 8;
 
   StartTileArray: TPointArray := [
@@ -277,7 +277,7 @@ begin
         StartStep()
       else if (Step > 0)
         then NormalStep(Step);
-      WaitEx(445, 125);
+      WaitEx(445, 325);
     end;
   until false;
 end.
